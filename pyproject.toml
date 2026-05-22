@@ -1,0 +1,58 @@
+[project]
+name = "botix"
+version = "1.0.0"
+description = "Официальный Python SDK для публичного API BOTIX"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [
+    { name = "BOTIX", email = "info@botix.pro" },
+]
+keywords = ["botix", "chatbot", "api", "sdk", "telegram", "whatsapp", "vk", "messenger"]
+requires-python = ">=3.9"
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Communications :: Chat",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "urllib3>=2.1.0,<3.0.0",
+    "python-dateutil>=2.8.2",
+    "pydantic>=2.11",
+    "typing-extensions>=4.7.1",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.2",
+    "pytest-cov>=4.0",
+]
+
+[project.urls]
+Homepage = "https://botix.pro"
+Documentation = "https://developers.botix.pro"
+Repository = "https://github.com/BOTIX-pro/sdk-python"
+Issues = "https://github.com/BOTIX-pro/sdk-python/issues"
+Changelog = "https://github.com/BOTIX-pro/sdk-python/blob/main/CHANGELOG.md"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["botix*"]
+exclude = ["tests*", "examples*"]
+
+[tool.setuptools.package-data]
+botix = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
