@@ -1,0 +1,872 @@
+# ВАЖНО (для будущих правок):
+# — HTTP-методы (GET, POST, PUT, DELETE) — мировой стандарт, не переводимы
+# — URL endpoint'ов (/public/v1/contacts) — технические идентификаторы
+# — JSON-поля (contact_id, created_at) — программные идентификаторы
+# — Статус-коды (200, 401, 403, 429) — мировой стандарт
+# — Технические термины: Bearer, Token, JSON, Webhook, OAuth, JWT — устоявшиеся
+# Переводятся: tags[].name, tags[].description, servers[].description, info.license.name,
+#              summary/description endpoint'ов, ENUM-значения когда они для людей.
+# UI-метки Redoc переводятся через public/js/lib/redoc-ru-i18n.js
+# (Redoc 2.x не имеет встроенной локализации).
+
+openapi: 3.0.3
+info:
+  title: BOTIX Public API
+  description: |
+    Публичный программный интерфейс платформы BOTIX (botix.pro) — позволяет интеграторам
+    и сторонним разработчикам встраивать функционал BOTIX в свои продукты: магазины, CRM,
+    мобильные приложения, бэкенды.
+
+    **Авторизация:** заголовок `Authorization: Bearer btx_live_…`. Каждый ключ привязан
+    к одному `project_id`. Каждый ключ имеет список `scopes` — операций, которые им
+    разрешены. Без нужного scope — `403 INSUFFICIENT_SCOPE`.
+
+    **Гейтинг по тарифу:**
+    - тариф без `api_enabled` — `403 API_NOT_AVAILABLE_ON_PLAN`
+    - триальный тариф (`api_write_enabled=0`) — read-only, POST/PUT/PATCH/DELETE → `403 TRIAL_READ_ONLY`
+    - лимиты `api_rate_per_minute` / `api_rate_per_day` — из настроек тарифа (см. ЛК `/billing`)
+
+    **Стандарт ответов:** обёртка `{success, data, meta}` для успеха и `{success:false, error:{code,message,details}}` для ошибки.
+
+    **Версионирование:** `/public/v1/*` фиксирован. Новые поля в ответах могут добавляться, удаление/смена типов запрещены.
+  version: "1.0.0"
+  contact:
+    name: BOTIX
+    url: https://botix.pro
+    email: hello@botix.pro
+  license:
+    name: Условия использования публичного API BOTIX
+    url: https://botix.pro/legal
+
+servers:
+  - url: https://api.botix.pro
+    description: Боевой сервер
+  - url: http://localhost:8888
+    description: Localhost (монолит) — для разработки
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Служебные
+    description: Служебные эндпоинты
+  - name: Контакты
+    description: Контакты (CRM-карточка клиента)
+  - name: Сообщения
+    description: Сообщения (история и отправка)
+  - name: Чаты
+    description: Чаты (диалоги bot↔контакт)
+  - name: Сценарии
+    description: Сценарии (визуальный конструктор)
+  - name: Каналы
+    description: Каналы связи (Telegram, виджет, …)
+  - name: Webhooks
+    description: Подписки на события
+
+paths:
+  /public/v1/me:
+    get:
+      tags: ["Служебные"]
+      summary: Контекст текущего ключа
+      description: Возвращает project_id, scopes, plan_key, остаток rate-limit
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /public/v1/contacts:
+    get:
+      tags: ["Контакты"]
+      summary: Список контактов
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - in: query
+          name: tag
+          schema: { type: string }
+          description: Фильтр по тегу (точное совпадение)
+        - in: query
+          name: channel
+          schema: { type: string, enum: [telegram, whatsapp, vk, widget, email, phone] }
+        - in: query
+          name: lead_status
+          schema: { type: string, enum: [new, warm, hot, client, lost] }
+        - in: query
+          name: since
+          schema: { type: string, format: date-time }
+          description: Фильтр по created_at >= since
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessWithMeta'
+                  - properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Contact' }
+    post:
+      tags: ["Контакты"]
+      summary: Создать контакт
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ContactWritable' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessContact'
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /public/v1/contacts/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    get:
+      tags: ["Контакты"]
+      summary: Карточка контакта
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SuccessContact' }
+          description: OK
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: ["Контакты"]
+      summary: Обновить контакт
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ContactWritable' }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SuccessContact' }
+          description: OK
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: ["Контакты"]
+      summary: Удалить контакт (soft delete)
+      responses:
+        '204': { description: No Content }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /public/v1/contacts/{id}/tags:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    post:
+      tags: ["Контакты"]
+      summary: Добавить тег контакту
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tag]
+              properties:
+                tag: { type: string, example: "vip" }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data:
+                    type: object
+                    properties:
+                      tags:
+                        type: array
+                        items: { type: string }
+          description: OK
+
+  /public/v1/contacts/{id}/tags/{tag}:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+      - in: path
+        name: tag
+        required: true
+        schema: { type: string }
+    delete:
+      tags: ["Контакты"]
+      summary: Снять тег с контакта
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      tags:
+                        type: array
+                        items: { type: string }
+          description: OK
+
+  /public/v1/messages:
+    get:
+      tags: ["Сообщения"]
+      summary: История сообщений
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - { in: query, name: contact_id, schema: { type: integer } }
+        - { in: query, name: chat_id, schema: { type: integer }, description: "alias для conversation_id" }
+        - { in: query, name: channel, schema: { type: string } }
+        - { in: query, name: role, schema: { type: string, enum: [user, bot, operator, system] } }
+        - { in: query, name: since, schema: { type: string, format: date-time } }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessWithMeta'
+                  - properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Message' }
+          description: OK
+    post:
+      tags: ["Сообщения"]
+      summary: Отправить сообщение
+      description: |
+        Реально отправляет сообщение в канал (Telegram/widget/VK) и фиксирует его
+        в истории. Канал выбирается так:
+        1. явный `channel` в payload (если передан);
+        2. `last_channel` контакта;
+        3. иначе 422 `NO_CHANNEL_AVAILABLE`.
+
+        Поддерживается заголовок `Idempotency-Key` (стандарт Stripe): повторный
+        запрос с тем же ключом в течение 24 часов вернёт сохранённый ответ без
+        новой отправки. Ответ будет содержать заголовок `Idempotent-Replayed: 1`.
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: false
+          schema: { type: string, maxLength: 255 }
+          description: Уникальный токен запроса для защиты от дублей при сетевых сбоях.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [contact_id, content]
+              properties:
+                contact_id: { type: integer }
+                channel:
+                  type: string
+                  description: "telegram | widget | vk. Опционально — иначе берётся last_channel контакта."
+                content: { type: string }
+                attachments:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      type: { type: string, example: "image" }
+                      url: { type: string, format: uri }
+                      name: { type: string }
+      responses:
+        '200':
+          description: Сообщение успешно отправлено каналом
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      id: { type: integer }
+                      message_id: { type: integer }
+                      conversation_id: { type: integer }
+                      contact_id: { type: integer }
+                      channel: { type: string }
+                      status: { type: string, example: "sent" }
+        '422':
+          description: |
+            Не удалось отправить из-за состояния (контакт/канал). Возможные коды:
+            `NO_CHANNEL_AVAILABLE`, `CHANNEL_NOT_SUPPORTED_YET`, `CHANNEL_NOT_ALLOWED`,
+            `CHANNEL_NOT_CONNECTED`, `CONTACT_NOT_REACHABLE`.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '502':
+          description: Канал ответил ошибкой при отправке (`DELIVERY_FAILED`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /public/v1/scenarios:
+    get:
+      tags: ["Сценарии"]
+      summary: Список сценариев проекта
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessWithMeta'
+                  - properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Scenario' }
+
+  /public/v1/scenarios/{id}/run:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    post:
+      tags: ["Сценарии"]
+      summary: Запустить сценарий для контакта
+      description: |
+        Запускает сценарий синхронно: создаёт conversation, отправляет первый блок
+        в канал, возвращает 200 OK c результатом. Для widget-канала первый блок
+        возвращается прямо в ответе (`first_block`/`first_blocks`); для остальных
+        каналов он уходит сразу пользователю, в ответе остаётся пустым.
+
+        Поддерживает `Idempotency-Key` (24ч). Если контакт сейчас в другом сценарии —
+        вернётся 422 `CONTACT_BUSY`; передайте `force=true`, чтобы прервать предыдущий
+        диалог.
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: false
+          schema: { type: string, maxLength: 255 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [contact_id]
+              properties:
+                contact_id: { type: integer }
+                channel:
+                  type: string
+                  description: "telegram | widget | vk. Опционально — иначе берётся last_channel контакта."
+                variables:
+                  type: object
+                  additionalProperties: true
+                force:
+                  type: boolean
+                  default: false
+                  description: Принудительно прервать активный сценарий контакта.
+      responses:
+        '200':
+          description: Сценарий запущен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      conversation_id: { type: integer }
+                      scenario_id: { type: integer }
+                      channel: { type: string }
+                      status: { type: string, example: "started" }
+                      first_block:
+                        type: object
+                        nullable: true
+                        description: Первый рендер сценария (widget-канал — заполнено; tg/vk — пусто).
+                      first_blocks:
+                        type: array
+                        items:
+                          type: object
+        '422':
+          description: |
+            Возможные коды: `SCENARIO_INACTIVE`, `CONTACT_NOT_FOUND`, `NO_CHANNEL_AVAILABLE`,
+            `CHANNEL_NOT_SUPPORTED_YET`, `CHANNEL_NOT_ALLOWED`, `CHANNEL_NOT_CONNECTED`,
+            `CONTACT_NOT_REACHABLE`, `CONTACT_BUSY`, `NO_START_BLOCK`.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /public/v1/chats:
+    get:
+      tags: ["Чаты"]
+      summary: Список чатов
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - { in: query, name: status, schema: { type: string, enum: [active, paused, completed, operator] } }
+        - { in: query, name: channel, schema: { type: string } }
+        - { in: query, name: contact_id, schema: { type: integer } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessWithMeta'
+                  - properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Chat' }
+
+  /public/v1/chats/{id}/messages:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    get:
+      tags: ["Чаты"]
+      summary: Сообщения внутри чата
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessWithMeta'
+                  - properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Message' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /public/v1/channels:
+    get:
+      tags: ["Каналы"]
+      summary: Каналы проекта
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Channel' }
+                  meta:
+                    type: object
+                    properties:
+                      total: { type: integer }
+
+  /public/v1/webhooks:
+    get:
+      tags: [Webhooks]
+      summary: Список подписок
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Webhook' }
+    post:
+      tags: [Webhooks]
+      summary: Создать подписку
+      description: |
+        После создания возвращается ОДИН РАЗ поле `data.secret` — для верификации
+        заголовка `X-Botix-Signature` (HMAC-SHA256). Сохраните его на своей стороне.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url, events]
+              properties:
+                url: { type: string, format: uri, example: "https://example.com/botix-webhook" }
+                events:
+                  type: array
+                  items: { $ref: '#/components/schemas/WebhookEvent' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      webhook: { $ref: '#/components/schemas/Webhook' }
+                      secret: { type: string, description: "Секрет для HMAC. Показывается один раз!" }
+
+  /public/v1/webhooks/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    put:
+      tags: [Webhooks]
+      summary: Обновить подписку
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url: { type: string, format: uri }
+                events:
+                  type: array
+                  items: { $ref: '#/components/schemas/WebhookEvent' }
+                status: { type: string, enum: [active, paused] }
+      responses:
+        '200': { description: OK }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Webhooks]
+      summary: Удалить подписку
+      responses:
+        '204': { description: No Content }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /public/v1/webhooks/{id}/test:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    post:
+      tags: [Webhooks]
+      summary: Тестовая отправка
+      description: |
+        Шлёт фиктивное событие `test` на URL подписки. Удобно для проверки HMAC
+        и доступности endpoint'а на стороне клиента.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      delivered: { type: boolean }
+                      response_code: { type: integer, nullable: true }
+                      response_ms: { type: integer, nullable: true }
+                      error: { type: string, nullable: true }
+                      request_id: { type: string, format: uuid }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: "btx_live_<40-char-alnum>"
+
+  parameters:
+    IdPath:
+      in: path
+      name: id
+      required: true
+      schema: { type: integer }
+    Page:
+      in: query
+      name: page
+      schema: { type: integer, minimum: 1, default: 1 }
+    PerPage:
+      in: query
+      name: per_page
+      schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+
+  responses:
+    Unauthorized:
+      description: Ключ отсутствует или невалиден
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: |
+        Недостаточно scope, тариф без API, или режим read-only:
+        `INSUFFICIENT_SCOPE` / `API_NOT_AVAILABLE_ON_PLAN` / `TRIAL_READ_ONLY`
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: Ресурс не найден или не принадлежит project_id
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    BadRequest:
+      description: Ошибка валидации / некорректный JSON
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    RateLimited:
+      description: Превышен лимит (минутный или суточный)
+      headers:
+        Retry-After: { schema: { type: integer } }
+        X-RateLimit-Limit: { schema: { type: integer } }
+        X-RateLimit-Remaining: { schema: { type: integer } }
+        X-RateLimit-Reset: { schema: { type: integer } }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
+  schemas:
+    SuccessWithMeta:
+      type: object
+      properties:
+        success: { type: boolean, example: true }
+        data: {}
+        meta:
+          type: object
+          properties:
+            page: { type: integer }
+            per_page: { type: integer }
+            total: { type: integer }
+
+    Error:
+      type: object
+      properties:
+        success: { type: boolean, example: false }
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              enum:
+                - MISSING_API_KEY
+                - INVALID_API_KEY
+                - KEY_REVOKED
+                - IP_BANNED
+                - INSUFFICIENT_SCOPE
+                - API_NOT_AVAILABLE_ON_PLAN
+                - TRIAL_READ_ONLY
+                - RATE_LIMIT_EXCEEDED
+                - VALIDATION_ERROR
+                - INVALID_JSON
+                - NOT_FOUND
+                - NO_CHANNEL_AVAILABLE
+                - CHANNEL_NOT_SUPPORTED_YET
+                - CHANNEL_NOT_ALLOWED
+                - CHANNEL_NOT_CONNECTED
+                - CONTACT_NOT_REACHABLE
+                - CONTACT_NOT_FOUND
+                - CONTACT_BUSY
+                - SCENARIO_NOT_FOUND
+                - SCENARIO_INACTIVE
+                - NO_START_BLOCK
+                - DELIVERY_FAILED
+            message: { type: string }
+            details: { type: object, additionalProperties: true }
+
+    MeResponse:
+      type: object
+      properties:
+        success: { type: boolean }
+        data:
+          type: object
+          properties:
+            project_id: { type: integer }
+            api_key_id: { type: integer }
+            scopes:
+              type: array
+              items: { type: string }
+            plan_key: { type: string }
+            limits:
+              type: object
+              properties:
+                api_enabled: { type: boolean }
+                api_write_enabled: { type: boolean }
+                per_minute: { type: integer }
+                per_day: { type: integer }
+            rate_limit:
+              type: object
+              properties:
+                limit: { type: integer }
+                remaining: { type: integer }
+                reset_at: { type: string, format: date-time }
+
+    SuccessContact:
+      type: object
+      properties:
+        success: { type: boolean }
+        data: { $ref: '#/components/schemas/Contact' }
+
+    Contact:
+      type: object
+      properties:
+        id: { type: integer }
+        project_id: { type: integer }
+        first_name: { type: string, nullable: true }
+        last_name: { type: string, nullable: true }
+        phone: { type: string, nullable: true }
+        email: { type: string, nullable: true }
+        telegram_user_id: { type: integer, nullable: true }
+        telegram_username: { type: string, nullable: true }
+        whatsapp_phone: { type: string, nullable: true }
+        vk_user_id: { type: integer, nullable: true }
+        avatar_url: { type: string, nullable: true }
+        city: { type: string, nullable: true }
+        timezone: { type: string, nullable: true }
+        language: { type: string, nullable: true, example: "ru" }
+        birthday: { type: string, format: date, nullable: true }
+        tags:
+          type: array
+          items: { type: string }
+        lead_status:
+          type: string
+          enum: [new, warm, hot, client, lost]
+        messages_count: { type: integer }
+        last_message_at: { type: string, format: date-time, nullable: true }
+        last_channel:
+          type: string
+          nullable: true
+          description: Последний канал, через который контакт писал (telegram/vk/widget/...)
+        first_message_at: { type: string, format: date-time, nullable: true }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time, nullable: true }
+        widget_session_id:
+          type: string
+          nullable: true
+          description: Идентификатор сессии в виджете (для канала widget)
+
+    ContactWritable:
+      type: object
+      properties:
+        first_name: { type: string }
+        last_name: { type: string }
+        phone: { type: string }
+        email: { type: string }
+        telegram_user_id: { type: integer }
+        telegram_username: { type: string }
+        whatsapp_phone: { type: string }
+        vk_user_id: { type: integer }
+        avatar_url: { type: string }
+        city: { type: string }
+        timezone: { type: string }
+        language: { type: string }
+        birthday: { type: string, format: date }
+        tags:
+          type: array
+          items: { type: string }
+        lead_status:
+          type: string
+          enum: [new, warm, hot, client, lost]
+
+    Message:
+      type: object
+      properties:
+        id: { type: integer }
+        project_id: { type: integer }
+        conversation_id: { type: integer }
+        contact_id: { type: integer }
+        role: { type: string, enum: [user, bot, operator, system] }
+        content: { type: string }
+        attachments:
+          type: array
+          nullable: true
+          items:
+            type: object
+            additionalProperties: true
+        source: { type: string, nullable: true, example: "scenario" }
+        scenario_id: { type: integer, nullable: true }
+        block_id: { type: string, nullable: true }
+        channel: { type: string }
+        is_read: { type: integer, enum: [0, 1] }
+        created_at: { type: string, format: date-time }
+
+    Chat:
+      type: object
+      properties:
+        id: { type: integer }
+        project_id: { type: integer }
+        contact_id: { type: integer }
+        channel: { type: string }
+        scenario_id: { type: integer, nullable: true }
+        status: { type: string, enum: [active, paused, completed, operator] }
+        messages_count: { type: integer }
+        last_message_at: { type: string, format: date-time, nullable: true }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time, nullable: true }
+
+    Scenario:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        description: { type: string }
+        is_active: { type: boolean }
+        trigger_type: { type: string }
+        trigger_value: { type: string, nullable: true }
+        channels:
+          type: array
+          items: { type: string }
+        version: { type: integer }
+        published_at: { type: string, format: date-time, nullable: true }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time, nullable: true }
+
+    Channel:
+      type: object
+      properties:
+        type: { type: string, example: "telegram" }
+        label: { type: string, example: "Telegram" }
+        allowed: { type: boolean, description: "Канал доступен на текущем тарифе" }
+        connected: { type: boolean, description: "Канал фактически подключён" }
+        connected_at: { type: string, format: date-time, nullable: true }
+
+    Webhook:
+      type: object
+      properties:
+        id: { type: integer }
+        project_id: { type: integer }
+        api_key_id: { type: integer }
+        url: { type: string, format: uri }
+        events:
+          type: array
+          items: { $ref: '#/components/schemas/WebhookEvent' }
+        status: { type: string, enum: [active, paused, failed] }
+        fail_count: { type: integer }
+        last_delivered_at: { type: string, format: date-time, nullable: true }
+        created_at: { type: string, format: date-time }
+
+    WebhookEvent:
+      type: string
+      enum:
+        - contact.created
+        - contact.updated
+        - contact.deleted
+        - contact.tagged
+        - message.received
+        - message.sent
+        - chat.opened
+        - chat.closed
+        - chat.assigned
+        - scenario.started
+        - scenario.completed
+        - scenario.failed
