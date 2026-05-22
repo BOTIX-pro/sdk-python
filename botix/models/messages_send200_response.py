@@ -18,23 +18,20 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr
+from pydantic import BaseModel, ConfigDict, StrictBool
 from typing import Any, ClassVar, Dict, List, Optional
+from botix.models.messages_send200_response_data import MessagesSend200ResponseData
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
-class PublicV1ScenariosIdRunPost200ResponseData(BaseModel):
+class MessagesSend200Response(BaseModel):
     """
-    PublicV1ScenariosIdRunPost200ResponseData
+    MessagesSend200Response
     """ # noqa: E501
-    conversation_id: Optional[StrictInt] = None
-    scenario_id: Optional[StrictInt] = None
-    channel: Optional[StrictStr] = None
-    status: Optional[StrictStr] = Field(default=None, json_schema_extra={"examples": ["started"]})
-    first_block: Optional[Dict[str, Any]] = Field(default=None, description="Первый рендер сценария (widget-канал — заполнено; tg/vk — пусто).")
-    first_blocks: Optional[List[Dict[str, Any]]] = None
-    __properties: ClassVar[List[str]] = ["conversation_id", "scenario_id", "channel", "status", "first_block", "first_blocks"]
+    success: Optional[StrictBool] = None
+    data: Optional[MessagesSend200ResponseData] = None
+    __properties: ClassVar[List[str]] = ["success", "data"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -54,7 +51,7 @@ class PublicV1ScenariosIdRunPost200ResponseData(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of PublicV1ScenariosIdRunPost200ResponseData from a JSON string"""
+        """Create an instance of MessagesSend200Response from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -75,16 +72,14 @@ class PublicV1ScenariosIdRunPost200ResponseData(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # set to None if first_block (nullable) is None
-        # and model_fields_set contains the field
-        if self.first_block is None and "first_block" in self.model_fields_set:
-            _dict['first_block'] = None
-
+        # override the default output from pydantic by calling `to_dict()` of data
+        if self.data:
+            _dict['data'] = self.data.to_dict()
         return _dict
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of PublicV1ScenariosIdRunPost200ResponseData from a dict"""
+        """Create an instance of MessagesSend200Response from a dict"""
         if obj is None:
             return None
 
@@ -92,12 +87,8 @@ class PublicV1ScenariosIdRunPost200ResponseData(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "conversation_id": obj.get("conversation_id"),
-            "scenario_id": obj.get("scenario_id"),
-            "channel": obj.get("channel"),
-            "status": obj.get("status"),
-            "first_block": obj.get("first_block"),
-            "first_blocks": obj.get("first_blocks")
+            "success": obj.get("success"),
+            "data": MessagesSend200ResponseData.from_dict(obj["data"]) if obj.get("data") is not None else None
         })
         return _obj
 

@@ -18,20 +18,20 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, StrictBool
+from pydantic import BaseModel, ConfigDict, Field, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
-from botix.models.public_v1_contacts_id_tags_post200_response_data import PublicV1ContactsIdTagsPost200ResponseData
+from botix.models.webhook import Webhook
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
-class PublicV1ContactsIdTagsTagDelete200Response(BaseModel):
+class WebhooksCreate201ResponseData(BaseModel):
     """
-    PublicV1ContactsIdTagsTagDelete200Response
+    WebhooksCreate201ResponseData
     """ # noqa: E501
-    success: Optional[StrictBool] = None
-    data: Optional[PublicV1ContactsIdTagsPost200ResponseData] = None
-    __properties: ClassVar[List[str]] = ["success", "data"]
+    webhook: Optional[Webhook] = None
+    secret: Optional[StrictStr] = Field(default=None, description="Секрет для HMAC. Показывается один раз!")
+    __properties: ClassVar[List[str]] = ["webhook", "secret"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -51,7 +51,7 @@ class PublicV1ContactsIdTagsTagDelete200Response(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of PublicV1ContactsIdTagsTagDelete200Response from a JSON string"""
+        """Create an instance of WebhooksCreate201ResponseData from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -72,14 +72,14 @@ class PublicV1ContactsIdTagsTagDelete200Response(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # override the default output from pydantic by calling `to_dict()` of data
-        if self.data:
-            _dict['data'] = self.data.to_dict()
+        # override the default output from pydantic by calling `to_dict()` of webhook
+        if self.webhook:
+            _dict['webhook'] = self.webhook.to_dict()
         return _dict
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of PublicV1ContactsIdTagsTagDelete200Response from a dict"""
+        """Create an instance of WebhooksCreate201ResponseData from a dict"""
         if obj is None:
             return None
 
@@ -87,8 +87,8 @@ class PublicV1ContactsIdTagsTagDelete200Response(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "success": obj.get("success"),
-            "data": PublicV1ContactsIdTagsPost200ResponseData.from_dict(obj["data"]) if obj.get("data") is not None else None
+            "webhook": Webhook.from_dict(obj["webhook"]) if obj.get("webhook") is not None else None,
+            "secret": obj.get("secret")
         })
         return _obj
 

@@ -20,19 +20,19 @@ import json
 
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
-from botix.models.public_v1_messages_post_request_attachments_inner import PublicV1MessagesPostRequestAttachmentsInner
+from botix.models.messages_send_request_attachments_inner import MessagesSendRequestAttachmentsInner
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
-class PublicV1MessagesPostRequest(BaseModel):
+class MessagesSendRequest(BaseModel):
     """
-    PublicV1MessagesPostRequest
+    MessagesSendRequest
     """ # noqa: E501
     contact_id: StrictInt
     channel: Optional[StrictStr] = Field(default=None, description="telegram | widget | vk. Опционально — иначе берётся last_channel контакта.")
     content: StrictStr
-    attachments: Optional[List[PublicV1MessagesPostRequestAttachmentsInner]] = None
+    attachments: Optional[List[MessagesSendRequestAttachmentsInner]] = None
     __properties: ClassVar[List[str]] = ["contact_id", "channel", "content", "attachments"]
 
     model_config = ConfigDict(
@@ -53,7 +53,7 @@ class PublicV1MessagesPostRequest(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of PublicV1MessagesPostRequest from a JSON string"""
+        """Create an instance of MessagesSendRequest from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -85,7 +85,7 @@ class PublicV1MessagesPostRequest(BaseModel):
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of PublicV1MessagesPostRequest from a dict"""
+        """Create an instance of MessagesSendRequest from a dict"""
         if obj is None:
             return None
 
@@ -96,7 +96,7 @@ class PublicV1MessagesPostRequest(BaseModel):
             "contact_id": obj.get("contact_id"),
             "channel": obj.get("channel"),
             "content": obj.get("content"),
-            "attachments": [PublicV1MessagesPostRequestAttachmentsInner.from_dict(_item) for _item in obj["attachments"]] if obj.get("attachments") is not None else None
+            "attachments": [MessagesSendRequestAttachmentsInner.from_dict(_item) for _item in obj["attachments"]] if obj.get("attachments") is not None else None
         })
         return _obj
 

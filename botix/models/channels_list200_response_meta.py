@@ -18,20 +18,18 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, StrictBool
+from pydantic import BaseModel, ConfigDict, StrictInt
 from typing import Any, ClassVar, Dict, List, Optional
-from botix.models.public_v1_scenarios_id_run_post200_response_data import PublicV1ScenariosIdRunPost200ResponseData
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
-class PublicV1ScenariosIdRunPost200Response(BaseModel):
+class ChannelsList200ResponseMeta(BaseModel):
     """
-    PublicV1ScenariosIdRunPost200Response
+    ChannelsList200ResponseMeta
     """ # noqa: E501
-    success: Optional[StrictBool] = None
-    data: Optional[PublicV1ScenariosIdRunPost200ResponseData] = None
-    __properties: ClassVar[List[str]] = ["success", "data"]
+    total: Optional[StrictInt] = None
+    __properties: ClassVar[List[str]] = ["total"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -51,7 +49,7 @@ class PublicV1ScenariosIdRunPost200Response(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of PublicV1ScenariosIdRunPost200Response from a JSON string"""
+        """Create an instance of ChannelsList200ResponseMeta from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -72,14 +70,11 @@ class PublicV1ScenariosIdRunPost200Response(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # override the default output from pydantic by calling `to_dict()` of data
-        if self.data:
-            _dict['data'] = self.data.to_dict()
         return _dict
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of PublicV1ScenariosIdRunPost200Response from a dict"""
+        """Create an instance of ChannelsList200ResponseMeta from a dict"""
         if obj is None:
             return None
 
@@ -87,8 +82,7 @@ class PublicV1ScenariosIdRunPost200Response(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "success": obj.get("success"),
-            "data": PublicV1ScenariosIdRunPost200ResponseData.from_dict(obj["data"]) if obj.get("data") is not None else None
+            "total": obj.get("total")
         })
         return _obj
 

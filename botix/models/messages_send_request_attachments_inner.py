@@ -18,22 +18,20 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field, StrictBool
+from pydantic import BaseModel, ConfigDict, Field, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
-from botix.models.scenario import Scenario
-from botix.models.success_with_meta_meta import SuccessWithMetaMeta
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
-class PublicV1ScenariosGet200Response(BaseModel):
+class MessagesSendRequestAttachmentsInner(BaseModel):
     """
-    PublicV1ScenariosGet200Response
+    MessagesSendRequestAttachmentsInner
     """ # noqa: E501
-    success: Optional[StrictBool] = Field(default=None, json_schema_extra={"examples": [True]})
-    data: Optional[List[Scenario]] = None
-    meta: Optional[SuccessWithMetaMeta] = None
-    __properties: ClassVar[List[str]] = ["success", "data", "meta"]
+    type: Optional[StrictStr] = Field(default=None, json_schema_extra={"examples": ["image"]})
+    url: Optional[StrictStr] = None
+    name: Optional[StrictStr] = None
+    __properties: ClassVar[List[str]] = ["type", "url", "name"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -53,7 +51,7 @@ class PublicV1ScenariosGet200Response(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of PublicV1ScenariosGet200Response from a JSON string"""
+        """Create an instance of MessagesSendRequestAttachmentsInner from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -74,21 +72,11 @@ class PublicV1ScenariosGet200Response(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # override the default output from pydantic by calling `to_dict()` of each item in data (list)
-        _items = []
-        if self.data:
-            for _item_data in self.data:
-                if _item_data:
-                    _items.append(_item_data.to_dict())
-            _dict['data'] = _items
-        # override the default output from pydantic by calling `to_dict()` of meta
-        if self.meta:
-            _dict['meta'] = self.meta.to_dict()
         return _dict
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of PublicV1ScenariosGet200Response from a dict"""
+        """Create an instance of MessagesSendRequestAttachmentsInner from a dict"""
         if obj is None:
             return None
 
@@ -96,9 +84,9 @@ class PublicV1ScenariosGet200Response(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "success": obj.get("success"),
-            "data": [Scenario.from_dict(_item) for _item in obj["data"]] if obj.get("data") is not None else None,
-            "meta": SuccessWithMetaMeta.from_dict(obj["meta"]) if obj.get("meta") is not None else None
+            "type": obj.get("type"),
+            "url": obj.get("url"),
+            "name": obj.get("name")
         })
         return _obj
 

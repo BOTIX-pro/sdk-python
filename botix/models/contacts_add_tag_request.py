@@ -18,18 +18,18 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, StrictStr
-from typing import Any, ClassVar, Dict, List, Optional
+from pydantic import BaseModel, ConfigDict, Field, StrictStr
+from typing import Any, ClassVar, Dict, List
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
-class PublicV1ContactsIdTagsPost200ResponseData(BaseModel):
+class ContactsAddTagRequest(BaseModel):
     """
-    PublicV1ContactsIdTagsPost200ResponseData
+    ContactsAddTagRequest
     """ # noqa: E501
-    tags: Optional[List[StrictStr]] = None
-    __properties: ClassVar[List[str]] = ["tags"]
+    tag: StrictStr = Field(json_schema_extra={"examples": ["vip"]})
+    __properties: ClassVar[List[str]] = ["tag"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -49,7 +49,7 @@ class PublicV1ContactsIdTagsPost200ResponseData(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of PublicV1ContactsIdTagsPost200ResponseData from a JSON string"""
+        """Create an instance of ContactsAddTagRequest from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -74,7 +74,7 @@ class PublicV1ContactsIdTagsPost200ResponseData(BaseModel):
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of PublicV1ContactsIdTagsPost200ResponseData from a dict"""
+        """Create an instance of ContactsAddTagRequest from a dict"""
         if obj is None:
             return None
 
@@ -82,7 +82,7 @@ class PublicV1ContactsIdTagsPost200ResponseData(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "tags": obj.get("tags")
+            "tag": obj.get("tag")
         })
         return _obj
 

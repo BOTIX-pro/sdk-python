@@ -18,20 +18,31 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, StrictBool
+from pydantic import BaseModel, ConfigDict, StrictStr, field_validator
 from typing import Any, ClassVar, Dict, List, Optional
-from botix.models.public_v1_webhooks_id_test_post200_response_data import PublicV1WebhooksIdTestPost200ResponseData
+from botix.models.webhook_event import WebhookEvent
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
-class PublicV1WebhooksIdTestPost200Response(BaseModel):
+class WebhooksUpdateRequest(BaseModel):
     """
-    PublicV1WebhooksIdTestPost200Response
+    WebhooksUpdateRequest
     """ # noqa: E501
-    success: Optional[StrictBool] = None
-    data: Optional[PublicV1WebhooksIdTestPost200ResponseData] = None
-    __properties: ClassVar[List[str]] = ["success", "data"]
+    url: Optional[StrictStr] = None
+    events: Optional[List[WebhookEvent]] = None
+    status: Optional[StrictStr] = None
+    __properties: ClassVar[List[str]] = ["url", "events", "status"]
+
+    @field_validator('status')
+    def status_validate_enum(cls, value):
+        """Validates the enum"""
+        if value is None:
+            return value
+
+        if value not in set(['active', 'paused']):
+            raise ValueError("must be one of enum values ('active', 'paused')")
+        return value
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -51,7 +62,7 @@ class PublicV1WebhooksIdTestPost200Response(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of PublicV1WebhooksIdTestPost200Response from a JSON string"""
+        """Create an instance of WebhooksUpdateRequest from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -72,14 +83,11 @@ class PublicV1WebhooksIdTestPost200Response(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # override the default output from pydantic by calling `to_dict()` of data
-        if self.data:
-            _dict['data'] = self.data.to_dict()
         return _dict
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of PublicV1WebhooksIdTestPost200Response from a dict"""
+        """Create an instance of WebhooksUpdateRequest from a dict"""
         if obj is None:
             return None
 
@@ -87,8 +95,9 @@ class PublicV1WebhooksIdTestPost200Response(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "success": obj.get("success"),
-            "data": PublicV1WebhooksIdTestPost200ResponseData.from_dict(obj["data"]) if obj.get("data") is not None else None
+            "url": obj.get("url"),
+            "events": obj.get("events"),
+            "status": obj.get("status")
         })
         return _obj
 

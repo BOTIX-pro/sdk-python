@@ -18,20 +18,20 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field, StrictStr
+from pydantic import BaseModel, ConfigDict, StrictBool
 from typing import Any, ClassVar, Dict, List, Optional
 from botix.models.webhook import Webhook
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
-class PublicV1WebhooksPost201ResponseData(BaseModel):
+class WebhooksList200Response(BaseModel):
     """
-    PublicV1WebhooksPost201ResponseData
+    WebhooksList200Response
     """ # noqa: E501
-    webhook: Optional[Webhook] = None
-    secret: Optional[StrictStr] = Field(default=None, description="Секрет для HMAC. Показывается один раз!")
-    __properties: ClassVar[List[str]] = ["webhook", "secret"]
+    success: Optional[StrictBool] = None
+    data: Optional[List[Webhook]] = None
+    __properties: ClassVar[List[str]] = ["success", "data"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -51,7 +51,7 @@ class PublicV1WebhooksPost201ResponseData(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of PublicV1WebhooksPost201ResponseData from a JSON string"""
+        """Create an instance of WebhooksList200Response from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -72,14 +72,18 @@ class PublicV1WebhooksPost201ResponseData(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # override the default output from pydantic by calling `to_dict()` of webhook
-        if self.webhook:
-            _dict['webhook'] = self.webhook.to_dict()
+        # override the default output from pydantic by calling `to_dict()` of each item in data (list)
+        _items = []
+        if self.data:
+            for _item_data in self.data:
+                if _item_data:
+                    _items.append(_item_data.to_dict())
+            _dict['data'] = _items
         return _dict
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of PublicV1WebhooksPost201ResponseData from a dict"""
+        """Create an instance of WebhooksList200Response from a dict"""
         if obj is None:
             return None
 
@@ -87,8 +91,8 @@ class PublicV1WebhooksPost201ResponseData(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "webhook": Webhook.from_dict(obj["webhook"]) if obj.get("webhook") is not None else None,
-            "secret": obj.get("secret")
+            "success": obj.get("success"),
+            "data": [Webhook.from_dict(_item) for _item in obj["data"]] if obj.get("data") is not None else None
         })
         return _obj
 

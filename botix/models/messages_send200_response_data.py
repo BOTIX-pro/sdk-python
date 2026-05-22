@@ -24,9 +24,9 @@ from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
-class PublicV1MessagesPost200ResponseData(BaseModel):
+class MessagesSend200ResponseData(BaseModel):
     """
-    PublicV1MessagesPost200ResponseData
+    MessagesSend200ResponseData
     """ # noqa: E501
     id: Optional[StrictInt] = None
     message_id: Optional[StrictInt] = None
@@ -54,7 +54,7 @@ class PublicV1MessagesPost200ResponseData(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of PublicV1MessagesPost200ResponseData from a JSON string"""
+        """Create an instance of MessagesSend200ResponseData from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -79,7 +79,7 @@ class PublicV1MessagesPost200ResponseData(BaseModel):
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of PublicV1MessagesPost200ResponseData from a dict"""
+        """Create an instance of MessagesSend200ResponseData from a dict"""
         if obj is None:
             return None
 

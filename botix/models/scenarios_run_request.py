@@ -18,20 +18,21 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field, StrictBool
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
-from botix.models.public_v1_contacts_id_tags_post200_response_data import PublicV1ContactsIdTagsPost200ResponseData
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
-class PublicV1ContactsIdTagsPost200Response(BaseModel):
+class ScenariosRunRequest(BaseModel):
     """
-    PublicV1ContactsIdTagsPost200Response
+    ScenariosRunRequest
     """ # noqa: E501
-    success: Optional[StrictBool] = Field(default=None, json_schema_extra={"examples": [True]})
-    data: Optional[PublicV1ContactsIdTagsPost200ResponseData] = None
-    __properties: ClassVar[List[str]] = ["success", "data"]
+    contact_id: StrictInt
+    channel: Optional[StrictStr] = Field(default=None, description="telegram | widget | vk. Опционально — иначе берётся last_channel контакта.")
+    variables: Optional[Dict[str, Any]] = None
+    force: Optional[StrictBool] = Field(default=False, description="Принудительно прервать активный сценарий контакта.")
+    __properties: ClassVar[List[str]] = ["contact_id", "channel", "variables", "force"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -51,7 +52,7 @@ class PublicV1ContactsIdTagsPost200Response(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of PublicV1ContactsIdTagsPost200Response from a JSON string"""
+        """Create an instance of ScenariosRunRequest from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -72,14 +73,11 @@ class PublicV1ContactsIdTagsPost200Response(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # override the default output from pydantic by calling `to_dict()` of data
-        if self.data:
-            _dict['data'] = self.data.to_dict()
         return _dict
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of PublicV1ContactsIdTagsPost200Response from a dict"""
+        """Create an instance of ScenariosRunRequest from a dict"""
         if obj is None:
             return None
 
@@ -87,8 +85,10 @@ class PublicV1ContactsIdTagsPost200Response(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "success": obj.get("success"),
-            "data": PublicV1ContactsIdTagsPost200ResponseData.from_dict(obj["data"]) if obj.get("data") is not None else None
+            "contact_id": obj.get("contact_id"),
+            "channel": obj.get("channel"),
+            "variables": obj.get("variables"),
+            "force": obj.get("force") if obj.get("force") is not None else False
         })
         return _obj
 

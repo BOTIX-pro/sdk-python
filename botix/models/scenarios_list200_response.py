@@ -18,18 +18,22 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, StrictInt
+from pydantic import BaseModel, ConfigDict, Field, StrictBool
 from typing import Any, ClassVar, Dict, List, Optional
+from botix.models.scenario import Scenario
+from botix.models.success_with_meta_meta import SuccessWithMetaMeta
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
-class PublicV1ChannelsGet200ResponseMeta(BaseModel):
+class ScenariosList200Response(BaseModel):
     """
-    PublicV1ChannelsGet200ResponseMeta
+    ScenariosList200Response
     """ # noqa: E501
-    total: Optional[StrictInt] = None
-    __properties: ClassVar[List[str]] = ["total"]
+    success: Optional[StrictBool] = Field(default=None, json_schema_extra={"examples": [True]})
+    data: Optional[List[Scenario]] = None
+    meta: Optional[SuccessWithMetaMeta] = None
+    __properties: ClassVar[List[str]] = ["success", "data", "meta"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -49,7 +53,7 @@ class PublicV1ChannelsGet200ResponseMeta(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of PublicV1ChannelsGet200ResponseMeta from a JSON string"""
+        """Create an instance of ScenariosList200Response from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -70,11 +74,21 @@ class PublicV1ChannelsGet200ResponseMeta(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
+        # override the default output from pydantic by calling `to_dict()` of each item in data (list)
+        _items = []
+        if self.data:
+            for _item_data in self.data:
+                if _item_data:
+                    _items.append(_item_data.to_dict())
+            _dict['data'] = _items
+        # override the default output from pydantic by calling `to_dict()` of meta
+        if self.meta:
+            _dict['meta'] = self.meta.to_dict()
         return _dict
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of PublicV1ChannelsGet200ResponseMeta from a dict"""
+        """Create an instance of ScenariosList200Response from a dict"""
         if obj is None:
             return None
 
@@ -82,7 +96,9 @@ class PublicV1ChannelsGet200ResponseMeta(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "total": obj.get("total")
+            "success": obj.get("success"),
+            "data": [Scenario.from_dict(_item) for _item in obj["data"]] if obj.get("data") is not None else None,
+            "meta": SuccessWithMetaMeta.from_dict(obj["meta"]) if obj.get("meta") is not None else None
         })
         return _obj
 

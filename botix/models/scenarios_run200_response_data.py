@@ -18,20 +18,23 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, StrictBool
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
-from botix.models.webhook import Webhook
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
-class PublicV1WebhooksGet200Response(BaseModel):
+class ScenariosRun200ResponseData(BaseModel):
     """
-    PublicV1WebhooksGet200Response
+    ScenariosRun200ResponseData
     """ # noqa: E501
-    success: Optional[StrictBool] = None
-    data: Optional[List[Webhook]] = None
-    __properties: ClassVar[List[str]] = ["success", "data"]
+    conversation_id: Optional[StrictInt] = None
+    scenario_id: Optional[StrictInt] = None
+    channel: Optional[StrictStr] = None
+    status: Optional[StrictStr] = Field(default=None, json_schema_extra={"examples": ["started"]})
+    first_block: Optional[Dict[str, Any]] = Field(default=None, description="Первый рендер сценария (widget-канал — заполнено; tg/vk — пусто).")
+    first_blocks: Optional[List[Dict[str, Any]]] = None
+    __properties: ClassVar[List[str]] = ["conversation_id", "scenario_id", "channel", "status", "first_block", "first_blocks"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -51,7 +54,7 @@ class PublicV1WebhooksGet200Response(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of PublicV1WebhooksGet200Response from a JSON string"""
+        """Create an instance of ScenariosRun200ResponseData from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -72,18 +75,16 @@ class PublicV1WebhooksGet200Response(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # override the default output from pydantic by calling `to_dict()` of each item in data (list)
-        _items = []
-        if self.data:
-            for _item_data in self.data:
-                if _item_data:
-                    _items.append(_item_data.to_dict())
-            _dict['data'] = _items
+        # set to None if first_block (nullable) is None
+        # and model_fields_set contains the field
+        if self.first_block is None and "first_block" in self.model_fields_set:
+            _dict['first_block'] = None
+
         return _dict
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of PublicV1WebhooksGet200Response from a dict"""
+        """Create an instance of ScenariosRun200ResponseData from a dict"""
         if obj is None:
             return None
 
@@ -91,8 +92,12 @@ class PublicV1WebhooksGet200Response(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "success": obj.get("success"),
-            "data": [Webhook.from_dict(_item) for _item in obj["data"]] if obj.get("data") is not None else None
+            "conversation_id": obj.get("conversation_id"),
+            "scenario_id": obj.get("scenario_id"),
+            "channel": obj.get("channel"),
+            "status": obj.get("status"),
+            "first_block": obj.get("first_block"),
+            "first_blocks": obj.get("first_blocks")
         })
         return _obj
 

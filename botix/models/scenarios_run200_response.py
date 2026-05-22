@@ -20,17 +20,17 @@ import json
 
 from pydantic import BaseModel, ConfigDict, StrictBool
 from typing import Any, ClassVar, Dict, List, Optional
-from botix.models.public_v1_webhooks_post201_response_data import PublicV1WebhooksPost201ResponseData
+from botix.models.scenarios_run200_response_data import ScenariosRun200ResponseData
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
-class PublicV1WebhooksPost201Response(BaseModel):
+class ScenariosRun200Response(BaseModel):
     """
-    PublicV1WebhooksPost201Response
+    ScenariosRun200Response
     """ # noqa: E501
     success: Optional[StrictBool] = None
-    data: Optional[PublicV1WebhooksPost201ResponseData] = None
+    data: Optional[ScenariosRun200ResponseData] = None
     __properties: ClassVar[List[str]] = ["success", "data"]
 
     model_config = ConfigDict(
@@ -51,7 +51,7 @@ class PublicV1WebhooksPost201Response(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of PublicV1WebhooksPost201Response from a JSON string"""
+        """Create an instance of ScenariosRun200Response from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -79,7 +79,7 @@ class PublicV1WebhooksPost201Response(BaseModel):
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of PublicV1WebhooksPost201Response from a dict"""
+        """Create an instance of ScenariosRun200Response from a dict"""
         if obj is None:
             return None
 
@@ -88,7 +88,7 @@ class PublicV1WebhooksPost201Response(BaseModel):
 
         _obj = cls.model_validate({
             "success": obj.get("success"),
-            "data": PublicV1WebhooksPost201ResponseData.from_dict(obj["data"]) if obj.get("data") is not None else None
+            "data": ScenariosRun200ResponseData.from_dict(obj["data"]) if obj.get("data") is not None else None
         })
         return _obj
 

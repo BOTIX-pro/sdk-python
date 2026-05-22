@@ -20,18 +20,18 @@ import json
 
 from pydantic import BaseModel, ConfigDict, Field, StrictBool
 from typing import Any, ClassVar, Dict, List, Optional
-from botix.models.message import Message
+from botix.models.chat import Chat
 from botix.models.success_with_meta_meta import SuccessWithMetaMeta
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
-class PublicV1MessagesGet200Response(BaseModel):
+class ChatsList200Response(BaseModel):
     """
-    PublicV1MessagesGet200Response
+    ChatsList200Response
     """ # noqa: E501
     success: Optional[StrictBool] = Field(default=None, json_schema_extra={"examples": [True]})
-    data: Optional[List[Message]] = None
+    data: Optional[List[Chat]] = None
     meta: Optional[SuccessWithMetaMeta] = None
     __properties: ClassVar[List[str]] = ["success", "data", "meta"]
 
@@ -53,7 +53,7 @@ class PublicV1MessagesGet200Response(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of PublicV1MessagesGet200Response from a JSON string"""
+        """Create an instance of ChatsList200Response from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -88,7 +88,7 @@ class PublicV1MessagesGet200Response(BaseModel):
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of PublicV1MessagesGet200Response from a dict"""
+        """Create an instance of ChatsList200Response from a dict"""
         if obj is None:
             return None
 
@@ -97,7 +97,7 @@ class PublicV1MessagesGet200Response(BaseModel):
 
         _obj = cls.model_validate({
             "success": obj.get("success"),
-            "data": [Message.from_dict(_item) for _item in obj["data"]] if obj.get("data") is not None else None,
+            "data": [Chat.from_dict(_item) for _item in obj["data"]] if obj.get("data") is not None else None,
             "meta": SuccessWithMetaMeta.from_dict(obj["meta"]) if obj.get("meta") is not None else None
         })
         return _obj

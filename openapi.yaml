@@ -48,17 +48,17 @@ security:
   - bearerAuth: []
 
 tags:
-  - name: Служебные
+  - name: System
     description: Служебные эндпоинты
-  - name: Контакты
+  - name: Contacts
     description: Контакты (CRM-карточка клиента)
-  - name: Сообщения
+  - name: Messages
     description: Сообщения (история и отправка)
-  - name: Чаты
+  - name: Chats
     description: Чаты (диалоги bot↔контакт)
-  - name: Сценарии
+  - name: Scenarios
     description: Сценарии (визуальный конструктор)
-  - name: Каналы
+  - name: Channels
     description: Каналы связи (Telegram, виджет, …)
   - name: Webhooks
     description: Подписки на события
@@ -66,7 +66,8 @@ tags:
 paths:
   /public/v1/me:
     get:
-      tags: ["Служебные"]
+      operationId: meGet
+      tags: ["System"]
       summary: Контекст текущего ключа
       description: Возвращает project_id, scopes, plan_key, остаток rate-limit
       responses:
@@ -82,7 +83,8 @@ paths:
 
   /public/v1/contacts:
     get:
-      tags: ["Контакты"]
+      operationId: contactsList
+      tags: ["Contacts"]
       summary: Список контактов
       parameters:
         - $ref: '#/components/parameters/Page'
@@ -114,7 +116,8 @@ paths:
                         type: array
                         items: { $ref: '#/components/schemas/Contact' }
     post:
-      tags: ["Контакты"]
+      operationId: contactsCreate
+      tags: ["Contacts"]
       summary: Создать контакт
       requestBody:
         required: true
@@ -134,7 +137,8 @@ paths:
     parameters:
       - $ref: '#/components/parameters/IdPath'
     get:
-      tags: ["Контакты"]
+      operationId: contactsGet
+      tags: ["Contacts"]
       summary: Карточка контакта
       responses:
         '200':
@@ -144,7 +148,8 @@ paths:
           description: OK
         '404': { $ref: '#/components/responses/NotFound' }
     put:
-      tags: ["Контакты"]
+      operationId: contactsUpdate
+      tags: ["Contacts"]
       summary: Обновить контакт
       requestBody:
         required: true
@@ -159,7 +164,8 @@ paths:
           description: OK
         '404': { $ref: '#/components/responses/NotFound' }
     delete:
-      tags: ["Контакты"]
+      operationId: contactsDelete
+      tags: ["Contacts"]
       summary: Удалить контакт (soft delete)
       responses:
         '204': { description: No Content }
@@ -169,7 +175,8 @@ paths:
     parameters:
       - $ref: '#/components/parameters/IdPath'
     post:
-      tags: ["Контакты"]
+      operationId: contactsAddTag
+      tags: ["Contacts"]
       summary: Добавить тег контакту
       requestBody:
         required: true
@@ -204,7 +211,8 @@ paths:
         required: true
         schema: { type: string }
     delete:
-      tags: ["Контакты"]
+      operationId: contactsRemoveTag
+      tags: ["Contacts"]
       summary: Снять тег с контакта
       responses:
         '200':
@@ -224,7 +232,8 @@ paths:
 
   /public/v1/messages:
     get:
-      tags: ["Сообщения"]
+      operationId: messagesList
+      tags: ["Messages"]
       summary: История сообщений
       parameters:
         - $ref: '#/components/parameters/Page'
@@ -247,7 +256,8 @@ paths:
                         items: { $ref: '#/components/schemas/Message' }
           description: OK
     post:
-      tags: ["Сообщения"]
+      operationId: messagesSend
+      tags: ["Messages"]
       summary: Отправить сообщение
       description: |
         Реально отправляет сообщение в канал (Telegram/widget/VK) и фиксирует его
@@ -320,7 +330,8 @@ paths:
 
   /public/v1/scenarios:
     get:
-      tags: ["Сценарии"]
+      operationId: scenariosList
+      tags: ["Scenarios"]
       summary: Список сценариев проекта
       responses:
         '200':
@@ -339,7 +350,8 @@ paths:
     parameters:
       - $ref: '#/components/parameters/IdPath'
     post:
-      tags: ["Сценарии"]
+      operationId: scenariosRun
+      tags: ["Scenarios"]
       summary: Запустить сценарий для контакта
       description: |
         Запускает сценарий синхронно: создаёт conversation, отправляет первый блок
@@ -411,7 +423,8 @@ paths:
 
   /public/v1/chats:
     get:
-      tags: ["Чаты"]
+      operationId: chatsList
+      tags: ["Chats"]
       summary: Список чатов
       parameters:
         - $ref: '#/components/parameters/Page'
@@ -436,7 +449,8 @@ paths:
     parameters:
       - $ref: '#/components/parameters/IdPath'
     get:
-      tags: ["Чаты"]
+      operationId: chatsMessages
+      tags: ["Chats"]
       summary: Сообщения внутри чата
       parameters:
         - $ref: '#/components/parameters/Page'
@@ -457,7 +471,8 @@ paths:
 
   /public/v1/channels:
     get:
-      tags: ["Каналы"]
+      operationId: channelsList
+      tags: ["Channels"]
       summary: Каналы проекта
       responses:
         '200':
@@ -478,6 +493,7 @@ paths:
 
   /public/v1/webhooks:
     get:
+      operationId: webhooksList
       tags: [Webhooks]
       summary: Список подписок
       responses:
@@ -493,6 +509,7 @@ paths:
                     type: array
                     items: { $ref: '#/components/schemas/Webhook' }
     post:
+      operationId: webhooksCreate
       tags: [Webhooks]
       summary: Создать подписку
       description: |
@@ -529,6 +546,7 @@ paths:
     parameters:
       - $ref: '#/components/parameters/IdPath'
     put:
+      operationId: webhooksUpdate
       tags: [Webhooks]
       summary: Обновить подписку
       requestBody:
@@ -547,6 +565,7 @@ paths:
         '200': { description: OK }
         '404': { $ref: '#/components/responses/NotFound' }
     delete:
+      operationId: webhooksDelete
       tags: [Webhooks]
       summary: Удалить подписку
       responses:
@@ -557,6 +576,7 @@ paths:
     parameters:
       - $ref: '#/components/parameters/IdPath'
     post:
+      operationId: webhooksTest
       tags: [Webhooks]
       summary: Тестовая отправка
       description: |

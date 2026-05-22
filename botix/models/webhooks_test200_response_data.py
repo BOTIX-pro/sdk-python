@@ -18,18 +18,23 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field, StrictStr
-from typing import Any, ClassVar, Dict, List
+from pydantic import BaseModel, ConfigDict, StrictBool, StrictInt, StrictStr
+from typing import Any, ClassVar, Dict, List, Optional
+from uuid import UUID
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
-class PublicV1ContactsIdTagsPostRequest(BaseModel):
+class WebhooksTest200ResponseData(BaseModel):
     """
-    PublicV1ContactsIdTagsPostRequest
+    WebhooksTest200ResponseData
     """ # noqa: E501
-    tag: StrictStr = Field(json_schema_extra={"examples": ["vip"]})
-    __properties: ClassVar[List[str]] = ["tag"]
+    delivered: Optional[StrictBool] = None
+    response_code: Optional[StrictInt] = None
+    response_ms: Optional[StrictInt] = None
+    error: Optional[StrictStr] = None
+    request_id: Optional[UUID] = None
+    __properties: ClassVar[List[str]] = ["delivered", "response_code", "response_ms", "error", "request_id"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -49,7 +54,7 @@ class PublicV1ContactsIdTagsPostRequest(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of PublicV1ContactsIdTagsPostRequest from a JSON string"""
+        """Create an instance of WebhooksTest200ResponseData from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -70,11 +75,26 @@ class PublicV1ContactsIdTagsPostRequest(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
+        # set to None if response_code (nullable) is None
+        # and model_fields_set contains the field
+        if self.response_code is None and "response_code" in self.model_fields_set:
+            _dict['response_code'] = None
+
+        # set to None if response_ms (nullable) is None
+        # and model_fields_set contains the field
+        if self.response_ms is None and "response_ms" in self.model_fields_set:
+            _dict['response_ms'] = None
+
+        # set to None if error (nullable) is None
+        # and model_fields_set contains the field
+        if self.error is None and "error" in self.model_fields_set:
+            _dict['error'] = None
+
         return _dict
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of PublicV1ContactsIdTagsPostRequest from a dict"""
+        """Create an instance of WebhooksTest200ResponseData from a dict"""
         if obj is None:
             return None
 
@@ -82,7 +102,11 @@ class PublicV1ContactsIdTagsPostRequest(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "tag": obj.get("tag")
+            "delivered": obj.get("delivered"),
+            "response_code": obj.get("response_code"),
+            "response_ms": obj.get("response_ms"),
+            "error": obj.get("error"),
+            "request_id": obj.get("request_id")
         })
         return _obj
 
