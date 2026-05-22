@@ -14,7 +14,7 @@ BOTIX SDK для Python — официальная клиентская библ
     print(client.me())
 """
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 # Высокоуровневое API — то, что использует разработчик в 99% случаев.
 from botix.client import Client as Client
@@ -56,6 +56,37 @@ from botix.models.scenario import Scenario as Scenario
 from botix.models.webhook import Webhook as Webhook
 from botix.models.webhook_event import WebhookEvent as WebhookEvent
 
+# v1.1+ bulk-операции и cursor-пагинация
+from botix.models.bulk_result import BulkResult as BulkResult
+from botix.models.bulk_result_data import BulkResultData as BulkResultData
+from botix.models.bulk_result_data_results_inner import (
+    BulkResultDataResultsInner as BulkResultDataResultsInner,
+)
+from botix.models.contacts_bulk_create_request import (
+    ContactsBulkCreateRequest as ContactsBulkCreateRequest,
+)
+from botix.models.contacts_bulk_update_request import (
+    ContactsBulkUpdateRequest as ContactsBulkUpdateRequest,
+)
+from botix.models.contacts_bulk_update_request_updates_inner import (
+    ContactsBulkUpdateRequestUpdatesInner as ContactsBulkUpdateRequestUpdatesInner,
+)
+from botix.models.messages_bulk_send200_response import (
+    MessagesBulkSend200Response as MessagesBulkSend200Response,
+)
+from botix.models.messages_bulk_send200_response_data import (
+    MessagesBulkSend200ResponseData as MessagesBulkSend200ResponseData,
+)
+from botix.models.messages_bulk_send200_response_data_results_inner import (
+    MessagesBulkSend200ResponseDataResultsInner as MessagesBulkSend200ResponseDataResultsInner,
+)
+from botix.models.messages_bulk_send_request import (
+    MessagesBulkSendRequest as MessagesBulkSendRequest,
+)
+from botix.models.messages_bulk_send_request_messages_inner import (
+    MessagesBulkSendRequestMessagesInner as MessagesBulkSendRequestMessagesInner,
+)
+
 __all__ = [
     "__version__",
     # High-level
@@ -95,4 +126,16 @@ __all__ = [
     "Scenario",
     "Webhook",
     "WebhookEvent",
+    # v1.1+ bulk
+    "BulkResult",
+    "BulkResultData",
+    "BulkResultDataResultsInner",
+    "ContactsBulkCreateRequest",
+    "ContactsBulkUpdateRequest",
+    "ContactsBulkUpdateRequestUpdatesInner",
+    "MessagesBulkSend200Response",
+    "MessagesBulkSend200ResponseData",
+    "MessagesBulkSend200ResponseDataResultsInner",
+    "MessagesBulkSendRequest",
+    "MessagesBulkSendRequestMessagesInner",
 ]

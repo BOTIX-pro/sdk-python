@@ -2,6 +2,25 @@
 
 Все значимые изменения проекта документируются здесь. Формат — [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/), версии следуют [Semantic Versioning](https://semver.org/lang/ru/).
 
+## [1.1.0] - 2026-05-22
+
+### Added
+
+- 3 новых bulk endpoint: `contacts.bulk_create`, `contacts.bulk_update`, `messages.bulk_send` (до 100 операций за запрос, частичный успех, идемпотентность 24ч).
+- Параметр `cursor` в list-методах (`contacts.list`, `messages.list`, `chats.list`, `chats.messages`) — cursor-based пагинация параллельно с существующим `page`/`per_page`.
+- Параметр `limit` в cursor-режиме list-методов (размер страницы 1..100).
+- Поле `meta.next_cursor` в response list-методов (opaque cursor для следующей страницы; `null` = последняя).
+- Описание заголовков `X-RateLimit-Limit` / `X-RateLimit-Remaining` / `X-RateLimit-Reset` (во всех ответах) и `Retry-After` (в 429).
+- 12 новых pydantic-моделей: `BulkResult`, `ContactsBulkCreateRequest`, `MessagesBulkSendRequest` и другие — экспортируются из `botix`.
+
+### Changed
+
+- Регенерация SDK на основе `openapi.yaml` v1.1.0 (`openapi-generator-cli`, generator `python`, `packageVersion=1.1.0`).
+
+### Compatibility
+
+- Изменения обратно-совместимые. Все вызовы v1.0 продолжают работать без правок.
+
 ## [1.0.0] - 2026-05-22
 
 ### Added

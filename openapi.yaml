@@ -29,7 +29,15 @@ info:
     **Стандарт ответов:** обёртка `{success, data, meta}` для успеха и `{success:false, error:{code,message,details}}` для ошибки.
 
     **Версионирование:** `/public/v1/*` фиксирован. Новые поля в ответах могут добавляться, удаление/смена типов запрещены.
-  version: "1.0.0"
+
+    ## Что нового в 1.1.0 (2026-05-22)
+
+    - **Rate-limit заголовки** во всех ответах: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`. На 429 — дополнительно `Retry-After`.
+    - **Cursor-based пагинация** — query-параметр `cursor` + поле `meta.next_cursor` параллельно с существующим `page`/`per_page` (старые клиенты не ломаются).
+    - **Bulk endpoints** для интеграторов: `POST /contacts/bulk-create`, `POST /messages/bulk-send`, `POST /contacts/bulk-update` (до 100 операций за запрос, частичный успех).
+
+    Изменения обратно-совместимые: все endpoint v1.0 работают без правок на стороне клиента.
+  version: "1.1.0"
   contact:
     name: BOTIX
     url: https://botix.pro
@@ -67,6 +75,36 @@ paths:
   /public/v1/me:
     get:
       operationId: meGet
+      x-codeSamples:
+        - lang: 'curl'
+          source: |
+            curl -X GET 'https://api.botix.pro/public/v1/me' \
+              -H 'Authorization: Bearer btx_live_<ваш-ключ>'
+        - lang: 'PHP'
+          label: 'PHP (botix-pro/sdk)'
+          source: |
+            <?php
+            use BotixPro\Sdk\Client;
+            
+            $client = new Client('btx_live_<ваш-ключ>');
+            $result = $client->system()->meGet();
+            print_r($result);
+        - lang: 'Python'
+          label: 'Python (botix)'
+          source: |
+            import botix
+            
+            client = botix.Client('btx_live_<ваш-ключ>')
+            result = client.system.me_get()
+            print(result)
+        - lang: 'JavaScript'
+          label: 'Node.js (@botix/sdk)'
+          source: |
+            import { BotixClient } from '@botix/sdk';
+            
+            const client = new BotixClient('btx_live_<ваш-ключ>');
+            const result = await client.system.meGet();
+            console.log(result);
       tags: ["System"]
       summary: Контекст текущего ключа
       description: Возвращает project_id, scopes, plan_key, остаток rate-limit
@@ -84,11 +122,43 @@ paths:
   /public/v1/contacts:
     get:
       operationId: contactsList
+      x-codeSamples:
+        - lang: 'curl'
+          source: |
+            curl -X GET 'https://api.botix.pro/public/v1/contacts?page=1&per_page=50&tag=vip' \
+              -H 'Authorization: Bearer btx_live_<ваш-ключ>'
+        - lang: 'PHP'
+          label: 'PHP (botix-pro/sdk)'
+          source: |
+            <?php
+            use BotixPro\Sdk\Client;
+            
+            $client = new Client('btx_live_<ваш-ключ>');
+            $result = $client->contacts()->contactsList(['page' => 1, 'per_page' => 50, 'tag' => 'vip']);
+            print_r($result);
+        - lang: 'Python'
+          label: 'Python (botix)'
+          source: |
+            import botix
+            
+            client = botix.Client('btx_live_<ваш-ключ>')
+            result = client.contacts.contacts_list(page=1, per_page=50, tag='vip')
+            print(result)
+        - lang: 'JavaScript'
+          label: 'Node.js (@botix/sdk)'
+          source: |
+            import { BotixClient } from '@botix/sdk';
+            
+            const client = new BotixClient('btx_live_<ваш-ключ>');
+            const result = await client.contacts.contactsList({ page: 1, per_page: 50, tag: 'vip' });
+            console.log(result);
       tags: ["Contacts"]
       summary: Список контактов
       parameters:
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
         - in: query
           name: tag
           schema: { type: string }
@@ -117,6 +187,46 @@ paths:
                         items: { $ref: '#/components/schemas/Contact' }
     post:
       operationId: contactsCreate
+      x-codeSamples:
+        - lang: 'curl'
+          source: |
+            curl -X POST 'https://api.botix.pro/public/v1/contacts' \
+              -H 'Authorization: Bearer btx_live_<ваш-ключ>' \
+              -H 'Content-Type: application/json' \
+              -H "Idempotency-Key: $(uuidgen)" \
+              -d '{
+                "name": "Иван Иванов",
+                "phone": "+79991234567",
+                "channel": "telegram",
+                "tags": [
+                    "lead"
+                ]
+            }'
+        - lang: 'PHP'
+          label: 'PHP (botix-pro/sdk)'
+          source: |
+            <?php
+            use BotixPro\Sdk\Client;
+            
+            $client = new Client('btx_live_<ваш-ключ>');
+            $result = $client->contacts()->contactsCreate(['name' => 'Иван Иванов', 'phone' => '+79991234567', 'channel' => 'telegram', 'tags' => ['lead']]);
+            print_r($result);
+        - lang: 'Python'
+          label: 'Python (botix)'
+          source: |
+            import botix
+            
+            client = botix.Client('btx_live_<ваш-ключ>')
+            result = client.contacts.contacts_create(name='Иван Иванов', phone='+79991234567', channel='telegram', tags=['lead'])
+            print(result)
+        - lang: 'JavaScript'
+          label: 'Node.js (@botix/sdk)'
+          source: |
+            import { BotixClient } from '@botix/sdk';
+            
+            const client = new BotixClient('btx_live_<ваш-ключ>');
+            const result = await client.contacts.contactsCreate({ name: 'Иван Иванов', phone: '+79991234567', channel: 'telegram', tags: ['lead'] });
+            console.log(result);
       tags: ["Contacts"]
       summary: Создать контакт
       requestBody:
@@ -138,6 +248,36 @@ paths:
       - $ref: '#/components/parameters/IdPath'
     get:
       operationId: contactsGet
+      x-codeSamples:
+        - lang: 'curl'
+          source: |
+            curl -X GET 'https://api.botix.pro/public/v1/contacts/12345' \
+              -H 'Authorization: Bearer btx_live_<ваш-ключ>'
+        - lang: 'PHP'
+          label: 'PHP (botix-pro/sdk)'
+          source: |
+            <?php
+            use BotixPro\Sdk\Client;
+            
+            $client = new Client('btx_live_<ваш-ключ>');
+            $result = $client->contacts()->contactsGet(12345);
+            print_r($result);
+        - lang: 'Python'
+          label: 'Python (botix)'
+          source: |
+            import botix
+            
+            client = botix.Client('btx_live_<ваш-ключ>')
+            result = client.contacts.contacts_get(12345)
+            print(result)
+        - lang: 'JavaScript'
+          label: 'Node.js (@botix/sdk)'
+          source: |
+            import { BotixClient } from '@botix/sdk';
+            
+            const client = new BotixClient('btx_live_<ваш-ключ>');
+            const result = await client.contacts.contactsGet(12345);
+            console.log(result);
       tags: ["Contacts"]
       summary: Карточка контакта
       responses:
@@ -149,6 +289,42 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
     put:
       operationId: contactsUpdate
+      x-codeSamples:
+        - lang: 'curl'
+          source: |
+            curl -X PUT 'https://api.botix.pro/public/v1/contacts/12345' \
+              -H 'Authorization: Bearer btx_live_<ваш-ключ>' \
+              -H 'Content-Type: application/json' \
+              -H "Idempotency-Key: $(uuidgen)" \
+              -d '{
+                "name": "Иван Петров",
+                "lead_status": "warm"
+            }'
+        - lang: 'PHP'
+          label: 'PHP (botix-pro/sdk)'
+          source: |
+            <?php
+            use BotixPro\Sdk\Client;
+            
+            $client = new Client('btx_live_<ваш-ключ>');
+            $result = $client->contacts()->contactsUpdate(12345, ['name' => 'Иван Петров', 'lead_status' => 'warm']);
+            print_r($result);
+        - lang: 'Python'
+          label: 'Python (botix)'
+          source: |
+            import botix
+            
+            client = botix.Client('btx_live_<ваш-ключ>')
+            result = client.contacts.contacts_update(12345, name='Иван Петров', lead_status='warm')
+            print(result)
+        - lang: 'JavaScript'
+          label: 'Node.js (@botix/sdk)'
+          source: |
+            import { BotixClient } from '@botix/sdk';
+            
+            const client = new BotixClient('btx_live_<ваш-ключ>');
+            const result = await client.contacts.contactsUpdate(12345, { name: 'Иван Петров', lead_status: 'warm' });
+            console.log(result);
       tags: ["Contacts"]
       summary: Обновить контакт
       requestBody:
@@ -165,6 +341,37 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
     delete:
       operationId: contactsDelete
+      x-codeSamples:
+        - lang: 'curl'
+          source: |
+            curl -X DELETE 'https://api.botix.pro/public/v1/contacts/12345' \
+              -H 'Authorization: Bearer btx_live_<ваш-ключ>' \
+              -H "Idempotency-Key: $(uuidgen)"
+        - lang: 'PHP'
+          label: 'PHP (botix-pro/sdk)'
+          source: |
+            <?php
+            use BotixPro\Sdk\Client;
+            
+            $client = new Client('btx_live_<ваш-ключ>');
+            $result = $client->contacts()->contactsDelete(12345);
+            print_r($result);
+        - lang: 'Python'
+          label: 'Python (botix)'
+          source: |
+            import botix
+            
+            client = botix.Client('btx_live_<ваш-ключ>')
+            result = client.contacts.contacts_delete(12345)
+            print(result)
+        - lang: 'JavaScript'
+          label: 'Node.js (@botix/sdk)'
+          source: |
+            import { BotixClient } from '@botix/sdk';
+            
+            const client = new BotixClient('btx_live_<ваш-ключ>');
+            const result = await client.contacts.contactsDelete(12345);
+            console.log(result);
       tags: ["Contacts"]
       summary: Удалить контакт (soft delete)
       responses:
@@ -176,6 +383,41 @@ paths:
       - $ref: '#/components/parameters/IdPath'
     post:
       operationId: contactsAddTag
+      x-codeSamples:
+        - lang: 'curl'
+          source: |
+            curl -X POST 'https://api.botix.pro/public/v1/contacts/12345/tags' \
+              -H 'Authorization: Bearer btx_live_<ваш-ключ>' \
+              -H 'Content-Type: application/json' \
+              -H "Idempotency-Key: $(uuidgen)" \
+              -d '{
+                "tag": "vip"
+            }'
+        - lang: 'PHP'
+          label: 'PHP (botix-pro/sdk)'
+          source: |
+            <?php
+            use BotixPro\Sdk\Client;
+            
+            $client = new Client('btx_live_<ваш-ключ>');
+            $result = $client->contacts()->contactsAddTag(12345, ['tag' => 'vip']);
+            print_r($result);
+        - lang: 'Python'
+          label: 'Python (botix)'
+          source: |
+            import botix
+            
+            client = botix.Client('btx_live_<ваш-ключ>')
+            result = client.contacts.contacts_add_tag(12345, tag='vip')
+            print(result)
+        - lang: 'JavaScript'
+          label: 'Node.js (@botix/sdk)'
+          source: |
+            import { BotixClient } from '@botix/sdk';
+            
+            const client = new BotixClient('btx_live_<ваш-ключ>');
+            const result = await client.contacts.contactsAddTag(12345, { tag: 'vip' });
+            console.log(result);
       tags: ["Contacts"]
       summary: Добавить тег контакту
       requestBody:
@@ -212,6 +454,37 @@ paths:
         schema: { type: string }
     delete:
       operationId: contactsRemoveTag
+      x-codeSamples:
+        - lang: 'curl'
+          source: |
+            curl -X DELETE 'https://api.botix.pro/public/v1/contacts/12345/tags/vip' \
+              -H 'Authorization: Bearer btx_live_<ваш-ключ>' \
+              -H "Idempotency-Key: $(uuidgen)"
+        - lang: 'PHP'
+          label: 'PHP (botix-pro/sdk)'
+          source: |
+            <?php
+            use BotixPro\Sdk\Client;
+            
+            $client = new Client('btx_live_<ваш-ключ>');
+            $result = $client->contacts()->contactsRemoveTag(12345, 'vip');
+            print_r($result);
+        - lang: 'Python'
+          label: 'Python (botix)'
+          source: |
+            import botix
+            
+            client = botix.Client('btx_live_<ваш-ключ>')
+            result = client.contacts.contacts_remove_tag(12345, 'vip')
+            print(result)
+        - lang: 'JavaScript'
+          label: 'Node.js (@botix/sdk)'
+          source: |
+            import { BotixClient } from '@botix/sdk';
+            
+            const client = new BotixClient('btx_live_<ваш-ключ>');
+            const result = await client.contacts.contactsRemoveTag(12345, 'vip');
+            console.log(result);
       tags: ["Contacts"]
       summary: Снять тег с контакта
       responses:
@@ -230,14 +503,354 @@ paths:
                         items: { type: string }
           description: OK
 
+  /public/v1/contacts/bulk-create:
+    post:
+      operationId: contactsBulkCreate
+      x-codeSamples:
+        - lang: 'curl'
+          source: |
+            curl -X POST 'https://api.botix.pro/public/v1/contacts/bulk-create' \
+              -H 'Authorization: Bearer btx_live_<ваш-ключ>' \
+              -H 'Content-Type: application/json' \
+              -H "Idempotency-Key: $(uuidgen)" \
+              -d '{
+                "contacts": [
+                    {
+                        "name": "Иван",
+                        "phone": "+79991234567",
+                        "channel": "telegram"
+                    },
+                    {
+                        "name": "Мария",
+                        "phone": "+79997654321",
+                        "channel": "whatsapp"
+                    }
+                ]
+            }'
+        - lang: 'PHP'
+          label: 'PHP (botix-pro/sdk)'
+          source: |
+            <?php
+            use BotixPro\Sdk\Client;
+            
+            $client = new Client('btx_live_<ваш-ключ>');
+            $result = $client->contacts()->contactsBulkCreate(['contacts' => [['name' => 'Иван', 'phone' => '+79991234567', 'channel' => 'telegram'], ['name' => 'Мария', 'phone' => '+79997654321', 'channel' => 'whatsapp']]]);
+            print_r($result);
+        - lang: 'Python'
+          label: 'Python (botix)'
+          source: |
+            import botix
+            
+            client = botix.Client('btx_live_<ваш-ключ>')
+            result = client.contacts.contacts_bulk_create(contacts=[{'name': 'Иван', 'phone': '+79991234567', 'channel': 'telegram'}, {'name': 'Мария', 'phone': '+79997654321', 'channel': 'whatsapp'}])
+            print(result)
+        - lang: 'JavaScript'
+          label: 'Node.js (@botix/sdk)'
+          source: |
+            import { BotixClient } from '@botix/sdk';
+            
+            const client = new BotixClient('btx_live_<ваш-ключ>');
+            const result = await client.contacts.contactsBulkCreate({ contacts: [{ name: 'Иван', phone: '+79991234567', channel: 'telegram' }, { name: 'Мария', phone: '+79997654321', channel: 'whatsapp' }] });
+            console.log(result);
+      tags: ["Contacts"]
+      summary: Массовое создание контактов (v1.1)
+      description: |
+        Создаёт до 100 контактов одним запросом. Каждый item — в своей мини-транзакции,
+        частичный успех допустим (см. поля `created`/`failed`/`results`).
+
+        Bulk-операция в rate-limit считается как **1 запрос** (а не 100) — это сознательное
+        послабление для поощрения bulk-вызовов.
+
+        Поддерживает `Idempotency-Key` (24ч).
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: false
+          schema: { type: string, maxLength: 255 }
+          description: |
+            Уникальный токен запроса для защиты от дублей при сетевых сбоях. Рекомендация —
+            UUID v4 на каждую логическую операцию. **TTL ключа — 24 часа.** После истечения
+            тот же `Idempotency-Key` создаст новую операцию, кешированный результат не
+            возвращается. Повтор в окне 24 часов вернёт сохранённый ответ + заголовок
+            `Idempotent-Replayed: 1`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [contacts]
+              properties:
+                contacts:
+                  type: array
+                  minItems: 1
+                  maxItems: 100
+                  items: { $ref: '#/components/schemas/ContactWritable' }
+      responses:
+        '200':
+          description: Результат массового создания (включая частичный успех)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BulkResult' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /public/v1/contacts/bulk-update:
+    post:
+      operationId: contactsBulkUpdate
+      x-codeSamples:
+        - lang: 'curl'
+          source: |
+            curl -X POST 'https://api.botix.pro/public/v1/contacts/bulk-update' \
+              -H 'Authorization: Bearer btx_live_<ваш-ключ>' \
+              -H 'Content-Type: application/json' \
+              -H "Idempotency-Key: $(uuidgen)" \
+              -d '{
+                "updates": [
+                    {
+                        "id": 12345,
+                        "fields": {
+                            "lead_status": "hot"
+                        }
+                    },
+                    {
+                        "id": 12346,
+                        "fields": {
+                            "lead_status": "lost"
+                        }
+                    }
+                ]
+            }'
+        - lang: 'PHP'
+          label: 'PHP (botix-pro/sdk)'
+          source: |
+            <?php
+            use BotixPro\Sdk\Client;
+            
+            $client = new Client('btx_live_<ваш-ключ>');
+            $result = $client->contacts()->contactsBulkUpdate(['updates' => [['id' => 12345, 'fields' => ['lead_status' => 'hot']], ['id' => 12346, 'fields' => ['lead_status' => 'lost']]]]);
+            print_r($result);
+        - lang: 'Python'
+          label: 'Python (botix)'
+          source: |
+            import botix
+            
+            client = botix.Client('btx_live_<ваш-ключ>')
+            result = client.contacts.contacts_bulk_update(updates=[{'id': 12345, 'fields': {'lead_status': 'hot'}}, {'id': 12346, 'fields': {'lead_status': 'lost'}}])
+            print(result)
+        - lang: 'JavaScript'
+          label: 'Node.js (@botix/sdk)'
+          source: |
+            import { BotixClient } from '@botix/sdk';
+            
+            const client = new BotixClient('btx_live_<ваш-ключ>');
+            const result = await client.contacts.contactsBulkUpdate({ updates: [{ id: 12345, fields: { lead_status: 'hot' } }, { id: 12346, fields: { lead_status: 'lost' } }] });
+            console.log(result);
+      tags: ["Contacts"]
+      summary: Массовое обновление контактов (v1.1)
+      description: |
+        Обновляет до 100 контактов одним запросом. Каждый item — `{id, fields:{...}}`.
+        Частичный успех допустим. Поддерживает `Idempotency-Key`.
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: false
+          schema: { type: string, maxLength: 255 }
+          description: |
+            Уникальный токен запроса для защиты от дублей при сетевых сбоях. Рекомендация —
+            UUID v4 на каждую логическую операцию. **TTL ключа — 24 часа.** После истечения
+            тот же `Idempotency-Key` создаст новую операцию, кешированный результат не
+            возвращается. Повтор в окне 24 часов вернёт сохранённый ответ + заголовок
+            `Idempotent-Replayed: 1`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [updates]
+              properties:
+                updates:
+                  type: array
+                  minItems: 1
+                  maxItems: 100
+                  items:
+                    type: object
+                    required: [id, fields]
+                    properties:
+                      id: { type: integer }
+                      fields: { $ref: '#/components/schemas/ContactWritable' }
+      responses:
+        '200':
+          description: Результат массового обновления
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BulkResult' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /public/v1/messages/bulk-send:
+    post:
+      operationId: messagesBulkSend
+      x-codeSamples:
+        - lang: 'curl'
+          source: |
+            curl -X POST 'https://api.botix.pro/public/v1/messages/bulk-send' \
+              -H 'Authorization: Bearer btx_live_<ваш-ключ>' \
+              -H 'Content-Type: application/json' \
+              -H "Idempotency-Key: $(uuidgen)" \
+              -d '{
+                "messages": [
+                    {
+                        "contact_id": 12345,
+                        "channel": "telegram",
+                        "content": "Привет!"
+                    },
+                    {
+                        "contact_id": 12346,
+                        "channel": "whatsapp",
+                        "content": "Здравствуйте!"
+                    }
+                ]
+            }'
+        - lang: 'PHP'
+          label: 'PHP (botix-pro/sdk)'
+          source: |
+            <?php
+            use BotixPro\Sdk\Client;
+            
+            $client = new Client('btx_live_<ваш-ключ>');
+            $result = $client->messages()->messagesBulkSend(['messages' => [['contact_id' => 12345, 'channel' => 'telegram', 'content' => 'Привет!'], ['contact_id' => 12346, 'channel' => 'whatsapp', 'content' => 'Здравствуйте!']]]);
+            print_r($result);
+        - lang: 'Python'
+          label: 'Python (botix)'
+          source: |
+            import botix
+            
+            client = botix.Client('btx_live_<ваш-ключ>')
+            result = client.messages.messages_bulk_send(messages=[{'contact_id': 12345, 'channel': 'telegram', 'content': 'Привет!'}, {'contact_id': 12346, 'channel': 'whatsapp', 'content': 'Здравствуйте!'}])
+            print(result)
+        - lang: 'JavaScript'
+          label: 'Node.js (@botix/sdk)'
+          source: |
+            import { BotixClient } from '@botix/sdk';
+            
+            const client = new BotixClient('btx_live_<ваш-ключ>');
+            const result = await client.messages.messagesBulkSend({ messages: [{ contact_id: 12345, channel: 'telegram', content: 'Привет!' }, { contact_id: 12346, channel: 'whatsapp', content: 'Здравствуйте!' }] });
+            console.log(result);
+      tags: ["Messages"]
+      summary: Массовая отправка сообщений (v1.1)
+      description: |
+        Отправляет до 50 сообщений одним запросом. Каждое — независимо: частичный
+        успех допустим. Результат каждого item — либо `message_id` (успех), либо `error`.
+
+        Per-channel rate-limit (Telegram 30 msg/sec и т.п.) **не обходится** — если канал
+        отвергает сообщение из-за своего лимита, item помечается `DELIVERY_FAILED`.
+
+        Поддерживает `Idempotency-Key`.
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: false
+          schema: { type: string, maxLength: 255 }
+          description: |
+            Уникальный токен запроса для защиты от дублей при сетевых сбоях. Рекомендация —
+            UUID v4 на каждую логическую операцию. **TTL ключа — 24 часа.** После истечения
+            тот же `Idempotency-Key` создаст новую операцию, кешированный результат не
+            возвращается. Повтор в окне 24 часов вернёт сохранённый ответ + заголовок
+            `Idempotent-Replayed: 1`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [messages]
+              properties:
+                messages:
+                  type: array
+                  minItems: 1
+                  maxItems: 50
+                  items:
+                    type: object
+                    required: [contact_id, content]
+                    properties:
+                      contact_id: { type: integer }
+                      channel: { type: string }
+                      content: { type: string }
+                      attachments:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            type: { type: string }
+                            url: { type: string, format: uri }
+                            name: { type: string }
+      responses:
+        '200':
+          description: Результат массовой отправки
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      sent: { type: integer }
+                      failed: { type: integer }
+                      results:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            index: { type: integer }
+                            message_id: { type: integer, nullable: true }
+                            conversation_id: { type: integer, nullable: true }
+                            channel: { type: string, nullable: true }
+                            error: { type: string, nullable: true }
+                            message: { type: string, nullable: true }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
   /public/v1/messages:
     get:
       operationId: messagesList
+      x-codeSamples:
+        - lang: 'curl'
+          source: |
+            curl -X GET 'https://api.botix.pro/public/v1/messages?page=1&per_page=50&contact_id=12345' \
+              -H 'Authorization: Bearer btx_live_<ваш-ключ>'
+        - lang: 'PHP'
+          label: 'PHP (botix-pro/sdk)'
+          source: |
+            <?php
+            use BotixPro\Sdk\Client;
+            
+            $client = new Client('btx_live_<ваш-ключ>');
+            $result = $client->messages()->messagesList(['page' => 1, 'per_page' => 50, 'contact_id' => 12345]);
+            print_r($result);
+        - lang: 'Python'
+          label: 'Python (botix)'
+          source: |
+            import botix
+            
+            client = botix.Client('btx_live_<ваш-ключ>')
+            result = client.messages.messages_list(page=1, per_page=50, contact_id=12345)
+            print(result)
+        - lang: 'JavaScript'
+          label: 'Node.js (@botix/sdk)'
+          source: |
+            import { BotixClient } from '@botix/sdk';
+            
+            const client = new BotixClient('btx_live_<ваш-ключ>');
+            const result = await client.messages.messagesList({ page: 1, per_page: 50, contact_id: 12345 });
+            console.log(result);
       tags: ["Messages"]
       summary: История сообщений
       parameters:
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
         - { in: query, name: contact_id, schema: { type: integer } }
         - { in: query, name: chat_id, schema: { type: integer }, description: "alias для conversation_id" }
         - { in: query, name: channel, schema: { type: string } }
@@ -257,6 +870,43 @@ paths:
           description: OK
     post:
       operationId: messagesSend
+      x-codeSamples:
+        - lang: 'curl'
+          source: |
+            curl -X POST 'https://api.botix.pro/public/v1/messages' \
+              -H 'Authorization: Bearer btx_live_<ваш-ключ>' \
+              -H 'Content-Type: application/json' \
+              -H "Idempotency-Key: $(uuidgen)" \
+              -d '{
+                "contact_id": 12345,
+                "channel": "telegram",
+                "content": "Здравствуйте! Ваш заказ #1024 готов."
+            }'
+        - lang: 'PHP'
+          label: 'PHP (botix-pro/sdk)'
+          source: |
+            <?php
+            use BotixPro\Sdk\Client;
+            
+            $client = new Client('btx_live_<ваш-ключ>');
+            $result = $client->messages()->messagesSend(['contact_id' => 12345, 'channel' => 'telegram', 'content' => 'Здравствуйте! Ваш заказ #1024 готов.']);
+            print_r($result);
+        - lang: 'Python'
+          label: 'Python (botix)'
+          source: |
+            import botix
+            
+            client = botix.Client('btx_live_<ваш-ключ>')
+            result = client.messages.messages_send(contact_id=12345, channel='telegram', content='Здравствуйте! Ваш заказ #1024 готов.')
+            print(result)
+        - lang: 'JavaScript'
+          label: 'Node.js (@botix/sdk)'
+          source: |
+            import { BotixClient } from '@botix/sdk';
+            
+            const client = new BotixClient('btx_live_<ваш-ключ>');
+            const result = await client.messages.messagesSend({ contact_id: 12345, channel: 'telegram', content: 'Здравствуйте! Ваш заказ #1024 готов.' });
+            console.log(result);
       tags: ["Messages"]
       summary: Отправить сообщение
       description: |
@@ -274,7 +924,12 @@ paths:
           name: Idempotency-Key
           required: false
           schema: { type: string, maxLength: 255 }
-          description: Уникальный токен запроса для защиты от дублей при сетевых сбоях.
+          description: |
+            Уникальный токен запроса для защиты от дублей при сетевых сбоях. Рекомендация —
+            UUID v4 на каждую логическую операцию. **TTL ключа — 24 часа.** После истечения
+            тот же `Idempotency-Key` создаст новую операцию, кешированный результат не
+            возвращается. Повтор в окне 24 часов вернёт сохранённый ответ + заголовок
+            `Idempotent-Replayed: 1`.
       requestBody:
         required: true
         content:
@@ -331,6 +986,36 @@ paths:
   /public/v1/scenarios:
     get:
       operationId: scenariosList
+      x-codeSamples:
+        - lang: 'curl'
+          source: |
+            curl -X GET 'https://api.botix.pro/public/v1/scenarios' \
+              -H 'Authorization: Bearer btx_live_<ваш-ключ>'
+        - lang: 'PHP'
+          label: 'PHP (botix-pro/sdk)'
+          source: |
+            <?php
+            use BotixPro\Sdk\Client;
+            
+            $client = new Client('btx_live_<ваш-ключ>');
+            $result = $client->scenarios()->scenariosList();
+            print_r($result);
+        - lang: 'Python'
+          label: 'Python (botix)'
+          source: |
+            import botix
+            
+            client = botix.Client('btx_live_<ваш-ключ>')
+            result = client.scenarios.scenarios_list()
+            print(result)
+        - lang: 'JavaScript'
+          label: 'Node.js (@botix/sdk)'
+          source: |
+            import { BotixClient } from '@botix/sdk';
+            
+            const client = new BotixClient('btx_live_<ваш-ключ>');
+            const result = await client.scenarios.scenariosList();
+            console.log(result);
       tags: ["Scenarios"]
       summary: Список сценариев проекта
       responses:
@@ -351,6 +1036,45 @@ paths:
       - $ref: '#/components/parameters/IdPath'
     post:
       operationId: scenariosRun
+      x-codeSamples:
+        - lang: 'curl'
+          source: |
+            curl -X POST 'https://api.botix.pro/public/v1/scenarios/12345/run' \
+              -H 'Authorization: Bearer btx_live_<ваш-ключ>' \
+              -H 'Content-Type: application/json' \
+              -H "Idempotency-Key: $(uuidgen)" \
+              -d '{
+                "contact_id": 12345,
+                "channel": "widget",
+                "variables": {
+                    "utm_source": "kwork"
+                }
+            }'
+        - lang: 'PHP'
+          label: 'PHP (botix-pro/sdk)'
+          source: |
+            <?php
+            use BotixPro\Sdk\Client;
+            
+            $client = new Client('btx_live_<ваш-ключ>');
+            $result = $client->scenarios()->scenariosRun(12345, ['contact_id' => 12345, 'channel' => 'widget', 'variables' => ['utm_source' => 'kwork']]);
+            print_r($result);
+        - lang: 'Python'
+          label: 'Python (botix)'
+          source: |
+            import botix
+            
+            client = botix.Client('btx_live_<ваш-ключ>')
+            result = client.scenarios.scenarios_run(12345, contact_id=12345, channel='widget', variables={'utm_source': 'kwork'})
+            print(result)
+        - lang: 'JavaScript'
+          label: 'Node.js (@botix/sdk)'
+          source: |
+            import { BotixClient } from '@botix/sdk';
+            
+            const client = new BotixClient('btx_live_<ваш-ключ>');
+            const result = await client.scenarios.scenariosRun(12345, { contact_id: 12345, channel: 'widget', variables: { utm_source: 'kwork' } });
+            console.log(result);
       tags: ["Scenarios"]
       summary: Запустить сценарий для контакта
       description: |
@@ -367,6 +1091,12 @@ paths:
           name: Idempotency-Key
           required: false
           schema: { type: string, maxLength: 255 }
+          description: |
+            Уникальный токен запроса для защиты от дублей при сетевых сбоях. Рекомендация —
+            UUID v4 на каждую логическую операцию. **TTL ключа — 24 часа.** После истечения
+            тот же `Idempotency-Key` создаст новую операцию, кешированный результат не
+            возвращается. Повтор в окне 24 часов вернёт сохранённый ответ + заголовок
+            `Idempotent-Replayed: 1`.
       requestBody:
         required: true
         content:
@@ -424,11 +1154,43 @@ paths:
   /public/v1/chats:
     get:
       operationId: chatsList
+      x-codeSamples:
+        - lang: 'curl'
+          source: |
+            curl -X GET 'https://api.botix.pro/public/v1/chats?page=1&per_page=50&status=active' \
+              -H 'Authorization: Bearer btx_live_<ваш-ключ>'
+        - lang: 'PHP'
+          label: 'PHP (botix-pro/sdk)'
+          source: |
+            <?php
+            use BotixPro\Sdk\Client;
+            
+            $client = new Client('btx_live_<ваш-ключ>');
+            $result = $client->chats()->chatsList(['page' => 1, 'per_page' => 50, 'status' => 'active']);
+            print_r($result);
+        - lang: 'Python'
+          label: 'Python (botix)'
+          source: |
+            import botix
+            
+            client = botix.Client('btx_live_<ваш-ключ>')
+            result = client.chats.chats_list(page=1, per_page=50, status='active')
+            print(result)
+        - lang: 'JavaScript'
+          label: 'Node.js (@botix/sdk)'
+          source: |
+            import { BotixClient } from '@botix/sdk';
+            
+            const client = new BotixClient('btx_live_<ваш-ключ>');
+            const result = await client.chats.chatsList({ page: 1, per_page: 50, status: 'active' });
+            console.log(result);
       tags: ["Chats"]
       summary: Список чатов
       parameters:
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
         - { in: query, name: status, schema: { type: string, enum: [active, paused, completed, operator] } }
         - { in: query, name: channel, schema: { type: string } }
         - { in: query, name: contact_id, schema: { type: integer } }
@@ -450,11 +1212,43 @@ paths:
       - $ref: '#/components/parameters/IdPath'
     get:
       operationId: chatsMessages
+      x-codeSamples:
+        - lang: 'curl'
+          source: |
+            curl -X GET 'https://api.botix.pro/public/v1/chats/12345/messages?page=1&per_page=50' \
+              -H 'Authorization: Bearer btx_live_<ваш-ключ>'
+        - lang: 'PHP'
+          label: 'PHP (botix-pro/sdk)'
+          source: |
+            <?php
+            use BotixPro\Sdk\Client;
+            
+            $client = new Client('btx_live_<ваш-ключ>');
+            $result = $client->chats()->chatsMessages(12345, ['page' => 1, 'per_page' => 50]);
+            print_r($result);
+        - lang: 'Python'
+          label: 'Python (botix)'
+          source: |
+            import botix
+            
+            client = botix.Client('btx_live_<ваш-ключ>')
+            result = client.chats.chats_messages(12345, page=1, per_page=50)
+            print(result)
+        - lang: 'JavaScript'
+          label: 'Node.js (@botix/sdk)'
+          source: |
+            import { BotixClient } from '@botix/sdk';
+            
+            const client = new BotixClient('btx_live_<ваш-ключ>');
+            const result = await client.chats.chatsMessages(12345, { page: 1, per_page: 50 });
+            console.log(result);
       tags: ["Chats"]
       summary: Сообщения внутри чата
       parameters:
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
       responses:
         '200':
           description: OK
@@ -472,6 +1266,36 @@ paths:
   /public/v1/channels:
     get:
       operationId: channelsList
+      x-codeSamples:
+        - lang: 'curl'
+          source: |
+            curl -X GET 'https://api.botix.pro/public/v1/channels' \
+              -H 'Authorization: Bearer btx_live_<ваш-ключ>'
+        - lang: 'PHP'
+          label: 'PHP (botix-pro/sdk)'
+          source: |
+            <?php
+            use BotixPro\Sdk\Client;
+            
+            $client = new Client('btx_live_<ваш-ключ>');
+            $result = $client->channels()->channelsList();
+            print_r($result);
+        - lang: 'Python'
+          label: 'Python (botix)'
+          source: |
+            import botix
+            
+            client = botix.Client('btx_live_<ваш-ключ>')
+            result = client.channels.channels_list()
+            print(result)
+        - lang: 'JavaScript'
+          label: 'Node.js (@botix/sdk)'
+          source: |
+            import { BotixClient } from '@botix/sdk';
+            
+            const client = new BotixClient('btx_live_<ваш-ключ>');
+            const result = await client.channels.channelsList();
+            console.log(result);
       tags: ["Channels"]
       summary: Каналы проекта
       responses:
@@ -494,6 +1318,36 @@ paths:
   /public/v1/webhooks:
     get:
       operationId: webhooksList
+      x-codeSamples:
+        - lang: 'curl'
+          source: |
+            curl -X GET 'https://api.botix.pro/public/v1/webhooks' \
+              -H 'Authorization: Bearer btx_live_<ваш-ключ>'
+        - lang: 'PHP'
+          label: 'PHP (botix-pro/sdk)'
+          source: |
+            <?php
+            use BotixPro\Sdk\Client;
+            
+            $client = new Client('btx_live_<ваш-ключ>');
+            $result = $client->webhooks()->webhooksList();
+            print_r($result);
+        - lang: 'Python'
+          label: 'Python (botix)'
+          source: |
+            import botix
+            
+            client = botix.Client('btx_live_<ваш-ключ>')
+            result = client.webhooks.webhooks_list()
+            print(result)
+        - lang: 'JavaScript'
+          label: 'Node.js (@botix/sdk)'
+          source: |
+            import { BotixClient } from '@botix/sdk';
+            
+            const client = new BotixClient('btx_live_<ваш-ключ>');
+            const result = await client.webhooks.webhooksList();
+            console.log(result);
       tags: [Webhooks]
       summary: Список подписок
       responses:
@@ -510,6 +1364,45 @@ paths:
                     items: { $ref: '#/components/schemas/Webhook' }
     post:
       operationId: webhooksCreate
+      x-codeSamples:
+        - lang: 'curl'
+          source: |
+            curl -X POST 'https://api.botix.pro/public/v1/webhooks' \
+              -H 'Authorization: Bearer btx_live_<ваш-ключ>' \
+              -H 'Content-Type: application/json' \
+              -H "Idempotency-Key: $(uuidgen)" \
+              -d '{
+                "url": "https:\/\/example.com\/botix-webhook",
+                "events": [
+                    "message.received",
+                    "chat.created"
+                ]
+            }'
+        - lang: 'PHP'
+          label: 'PHP (botix-pro/sdk)'
+          source: |
+            <?php
+            use BotixPro\Sdk\Client;
+            
+            $client = new Client('btx_live_<ваш-ключ>');
+            $result = $client->webhooks()->webhooksCreate(['url' => 'https://example.com/botix-webhook', 'events' => ['message.received', 'chat.created']]);
+            print_r($result);
+        - lang: 'Python'
+          label: 'Python (botix)'
+          source: |
+            import botix
+            
+            client = botix.Client('btx_live_<ваш-ключ>')
+            result = client.webhooks.webhooks_create(url='https://example.com/botix-webhook', events=['message.received', 'chat.created'])
+            print(result)
+        - lang: 'JavaScript'
+          label: 'Node.js (@botix/sdk)'
+          source: |
+            import { BotixClient } from '@botix/sdk';
+            
+            const client = new BotixClient('btx_live_<ваш-ключ>');
+            const result = await client.webhooks.webhooksCreate({ url: 'https://example.com/botix-webhook', events: ['message.received', 'chat.created'] });
+            console.log(result);
       tags: [Webhooks]
       summary: Создать подписку
       description: |
@@ -547,6 +1440,42 @@ paths:
       - $ref: '#/components/parameters/IdPath'
     put:
       operationId: webhooksUpdate
+      x-codeSamples:
+        - lang: 'curl'
+          source: |
+            curl -X PUT 'https://api.botix.pro/public/v1/webhooks/12345' \
+              -H 'Authorization: Bearer btx_live_<ваш-ключ>' \
+              -H 'Content-Type: application/json' \
+              -H "Idempotency-Key: $(uuidgen)" \
+              -d '{
+                "url": "https:\/\/example.com\/botix-webhook-v2",
+                "status": "active"
+            }'
+        - lang: 'PHP'
+          label: 'PHP (botix-pro/sdk)'
+          source: |
+            <?php
+            use BotixPro\Sdk\Client;
+            
+            $client = new Client('btx_live_<ваш-ключ>');
+            $result = $client->webhooks()->webhooksUpdate(12345, ['url' => 'https://example.com/botix-webhook-v2', 'status' => 'active']);
+            print_r($result);
+        - lang: 'Python'
+          label: 'Python (botix)'
+          source: |
+            import botix
+            
+            client = botix.Client('btx_live_<ваш-ключ>')
+            result = client.webhooks.webhooks_update(12345, url='https://example.com/botix-webhook-v2', status='active')
+            print(result)
+        - lang: 'JavaScript'
+          label: 'Node.js (@botix/sdk)'
+          source: |
+            import { BotixClient } from '@botix/sdk';
+            
+            const client = new BotixClient('btx_live_<ваш-ключ>');
+            const result = await client.webhooks.webhooksUpdate(12345, { url: 'https://example.com/botix-webhook-v2', status: 'active' });
+            console.log(result);
       tags: [Webhooks]
       summary: Обновить подписку
       requestBody:
@@ -566,6 +1495,37 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
     delete:
       operationId: webhooksDelete
+      x-codeSamples:
+        - lang: 'curl'
+          source: |
+            curl -X DELETE 'https://api.botix.pro/public/v1/webhooks/12345' \
+              -H 'Authorization: Bearer btx_live_<ваш-ключ>' \
+              -H "Idempotency-Key: $(uuidgen)"
+        - lang: 'PHP'
+          label: 'PHP (botix-pro/sdk)'
+          source: |
+            <?php
+            use BotixPro\Sdk\Client;
+            
+            $client = new Client('btx_live_<ваш-ключ>');
+            $result = $client->webhooks()->webhooksDelete(12345);
+            print_r($result);
+        - lang: 'Python'
+          label: 'Python (botix)'
+          source: |
+            import botix
+            
+            client = botix.Client('btx_live_<ваш-ключ>')
+            result = client.webhooks.webhooks_delete(12345)
+            print(result)
+        - lang: 'JavaScript'
+          label: 'Node.js (@botix/sdk)'
+          source: |
+            import { BotixClient } from '@botix/sdk';
+            
+            const client = new BotixClient('btx_live_<ваш-ключ>');
+            const result = await client.webhooks.webhooksDelete(12345);
+            console.log(result);
       tags: [Webhooks]
       summary: Удалить подписку
       responses:
@@ -577,6 +1537,38 @@ paths:
       - $ref: '#/components/parameters/IdPath'
     post:
       operationId: webhooksTest
+      x-codeSamples:
+        - lang: 'curl'
+          source: |
+            curl -X POST 'https://api.botix.pro/public/v1/webhooks/12345/test' \
+              -H 'Authorization: Bearer btx_live_<ваш-ключ>' \
+              -H 'Content-Type: application/json' \
+              -H "Idempotency-Key: $(uuidgen)"
+        - lang: 'PHP'
+          label: 'PHP (botix-pro/sdk)'
+          source: |
+            <?php
+            use BotixPro\Sdk\Client;
+            
+            $client = new Client('btx_live_<ваш-ключ>');
+            $result = $client->webhooks()->webhooksTest(12345);
+            print_r($result);
+        - lang: 'Python'
+          label: 'Python (botix)'
+          source: |
+            import botix
+            
+            client = botix.Client('btx_live_<ваш-ключ>')
+            result = client.webhooks.webhooks_test(12345)
+            print(result)
+        - lang: 'JavaScript'
+          label: 'Node.js (@botix/sdk)'
+          source: |
+            import { BotixClient } from '@botix/sdk';
+            
+            const client = new BotixClient('btx_live_<ваш-ключ>');
+            const result = await client.webhooks.webhooksTest(12345);
+            console.log(result);
       tags: [Webhooks]
       summary: Тестовая отправка
       description: |
@@ -621,6 +1613,37 @@ components:
       in: query
       name: per_page
       schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+    Cursor:
+      in: query
+      name: cursor
+      required: false
+      schema: { type: string }
+      description: |
+        v1.1+. Opaque cursor для постраничной выборки. Если передан — параметры `page`/`per_page` игнорируются.
+        Получите следующий cursor из `meta.next_cursor` предыдущего ответа.
+        `null`/отсутствие `next_cursor` = последняя страница.
+    Limit:
+      in: query
+      name: limit
+      required: false
+      schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+      description: |
+        v1.1+. Размер cursor-страницы. Используется только в cursor-режиме
+        (`?cursor=...`); для классической page-пагинации применяется `per_page`.
+
+  headers:
+    XRateLimitLimit:
+      description: Лимит запросов за минуту по текущему тарифу клиента
+      schema: { type: integer }
+    XRateLimitRemaining:
+      description: Сколько ещё запросов разрешено в текущем минутном окне
+      schema: { type: integer }
+    XRateLimitReset:
+      description: Unix timestamp следующего обнуления минутного окна
+      schema: { type: integer }
+    RetryAfter:
+      description: Секунды до возможности повтора (только при 429)
+      schema: { type: integer }
 
   responses:
     Unauthorized:
@@ -648,10 +1671,10 @@ components:
     RateLimited:
       description: Превышен лимит (минутный или суточный)
       headers:
-        Retry-After: { schema: { type: integer } }
-        X-RateLimit-Limit: { schema: { type: integer } }
-        X-RateLimit-Remaining: { schema: { type: integer } }
-        X-RateLimit-Reset: { schema: { type: integer } }
+        Retry-After: { $ref: '#/components/headers/RetryAfter' }
+        X-RateLimit-Limit: { $ref: '#/components/headers/XRateLimitLimit' }
+        X-RateLimit-Remaining: { $ref: '#/components/headers/XRateLimitRemaining' }
+        X-RateLimit-Reset: { $ref: '#/components/headers/XRateLimitReset' }
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }
@@ -665,9 +1688,16 @@ components:
         meta:
           type: object
           properties:
-            page: { type: integer }
-            per_page: { type: integer }
-            total: { type: integer }
+            page: { type: integer, description: "Только в page-режиме" }
+            per_page: { type: integer, description: "Только в page-режиме" }
+            total: { type: integer, description: "Только в page-режиме" }
+            next_cursor:
+              type: string
+              nullable: true
+              description: "v1.1+. В cursor-режиме — токен для следующей страницы. null = последняя страница. В page-режиме отсутствует."
+            has_more:
+              type: boolean
+              description: "v1.1+. true если есть ещё страницы (cursor-режим)."
 
     Error:
       type: object
@@ -689,6 +1719,7 @@ components:
                 - RATE_LIMIT_EXCEEDED
                 - VALIDATION_ERROR
                 - INVALID_JSON
+                - INVALID_CURSOR
                 - NOT_FOUND
                 - NO_CHANNEL_AVAILABLE
                 - CHANNEL_NOT_SUPPORTED_YET
@@ -736,6 +1767,29 @@ components:
       properties:
         success: { type: boolean }
         data: { $ref: '#/components/schemas/Contact' }
+
+    BulkResult:
+      type: object
+      description: |
+        Универсальный ответ bulk-эндпоинтов. Поле `created`/`updated` зависит от операции.
+        В `results` — массив элементов с индексом и либо `id` (успех), либо `error` (отказ).
+      properties:
+        success: { type: boolean }
+        data:
+          type: object
+          properties:
+            created: { type: integer, nullable: true, description: "Для bulk-create" }
+            updated: { type: integer, nullable: true, description: "Для bulk-update" }
+            failed: { type: integer }
+            results:
+              type: array
+              items:
+                type: object
+                properties:
+                  index: { type: integer }
+                  id: { type: integer, nullable: true }
+                  error: { type: string, nullable: true, example: "DUPLICATE_KEY" }
+                  message: { type: string, nullable: true }
 
     Contact:
       type: object

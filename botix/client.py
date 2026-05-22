@@ -37,6 +37,15 @@ from botix.configuration import Configuration
 from botix.idempotency import Response, generate_idempotency_key
 from botix.models.contact_writable import ContactWritable
 from botix.models.contacts_add_tag_request import ContactsAddTagRequest
+from botix.models.contacts_bulk_create_request import ContactsBulkCreateRequest
+from botix.models.contacts_bulk_update_request import ContactsBulkUpdateRequest
+from botix.models.contacts_bulk_update_request_updates_inner import (
+    ContactsBulkUpdateRequestUpdatesInner,
+)
+from botix.models.messages_bulk_send_request import MessagesBulkSendRequest
+from botix.models.messages_bulk_send_request_messages_inner import (
+    MessagesBulkSendRequestMessagesInner,
+)
 from botix.models.messages_send_request import MessagesSendRequest
 from botix.models.messages_send_request_attachments_inner import (
     MessagesSendRequestAttachmentsInner,
@@ -47,7 +56,7 @@ from botix.models.webhooks_create_request import WebhooksCreateRequest
 from botix.models.webhooks_update_request import WebhooksUpdateRequest
 
 DEFAULT_HOST = "https://api.botix.pro"
-DEFAULT_USER_AGENT = "botix-python/1.0.0"
+DEFAULT_USER_AGENT = "botix-python/1.1.0"
 
 
 class Client:
@@ -58,8 +67,10 @@ class Client:
     :param host: базовый URL API. По умолчанию ``https://api.botix.pro``.
     :param timeout: общий тайм-аут одного HTTP-запроса в секундах. По умолчанию 30.
     :param auto_idempotency: автоматически генерировать ``Idempotency-Key`` для
-                             мутирующих методов (``messages.send``, ``scenarios.run``)
-                             если разработчик не передал явно. По умолчанию True.
+                             мутирующих методов (``messages.send``, ``scenarios.run``,
+                             ``contacts.bulk_create``, ``contacts.bulk_update``,
+                             ``messages.bulk_send``) если разработчик не передал явно.
+                             По умолчанию True.
     :param user_agent: значение заголовка ``User-Agent``.
                        По умолчанию ``botix-python/<version>``.
     """
@@ -132,7 +143,19 @@ class _Contacts:
         channel: Optional[str] = None,
         lead_status: Optional[str] = None,
         since: Optional[Any] = None,
+        cursor: Optional[str] = None,
+        limit: Optional[int] = None,
     ) -> Any:
+        """Список контактов.
+
+        Поддерживает два режима пагинации:
+          - **Классический (page-based)** — параметры ``page`` и ``per_page``.
+          - **Cursor-based (v1.1+)** — параметр ``cursor`` (взять из
+            ``meta.next_cursor`` предыдущего ответа) и ``limit`` (размер
+            страницы, 1..100, по умолчанию серверный 50).
+
+        Если передан ``cursor`` — параметры ``page``/``per_page`` сервером игнорируются.
+        """
         return self._api.contacts_list(
             page=page,
             per_page=per_page,
@@ -140,6 +163,8 @@ class _Contacts:
             channel=channel,
             lead_status=lead_status,
             since=since,
+            cursor=cursor,
+            limit=limit,
             _request_timeout=self._timeout,
         )
 
@@ -176,6 +201,63 @@ class _Contacts:
             id=contact_id, tag=tag, _request_timeout=self._timeout
         )
 
+    def bulk_create(
+        self,
+        contacts: List[Dict[str, Any]],
+        idempotency_key: Optional[str] = None,
+    ) -> Response:
+        """Массовое создание контактов (v1.1+). До 100 за один запрос.
+
+        Каждый item — в своей мини-транзакции, частичный успех допустим:
+        в ответе ``data.created`` / ``data.failed`` / ``data.results`` показывают
+        исход по каждой позиции. В rate-limit вся операция считается как 1 запрос.
+
+        :param contacts: список словарей с полями контакта (см. ``ContactWritable``).
+        :param idempotency_key: явный ``Idempotency-Key`` (UUID v4 рекомендуется).
+                                Если не задан и ``auto_idempotency=True`` — генерится автоматически.
+        :return: :class:`botix.Response` с обёрткой над ответом и флагом ``replayed``.
+        """
+        body = ContactsBulkCreateRequest(contacts=[
+            ContactWritable.model_validate(c) for c in contacts
+        ])
+        key = idempotency_key or (
+            generate_idempotency_key() if self._client.auto_idempotency else None
+        )
+        api_response = self._api.contacts_bulk_create_with_http_info(
+            contacts_bulk_create_request=body,
+            idempotency_key=key,
+            _request_timeout=self._timeout,
+        )
+        return Response.from_api_response(api_response)
+
+    def bulk_update(
+        self,
+        updates: List[Dict[str, Any]],
+        idempotency_key: Optional[str] = None,
+    ) -> Response:
+        """Массовое обновление контактов (v1.1+). До 100 за один запрос.
+
+        :param updates: список словарей вида ``{"id": 123, "fields": {...}}``
+                        либо плоских словарей с ``id`` и редактируемыми полями.
+                        Финальная модель — :class:`ContactsBulkUpdateRequestUpdatesInner`.
+        :param idempotency_key: явный ``Idempotency-Key``. Если не задан и
+                                ``auto_idempotency=True`` — генерится автоматически.
+        :return: :class:`botix.Response`.
+        """
+        items = [
+            ContactsBulkUpdateRequestUpdatesInner.model_validate(u) for u in updates
+        ]
+        body = ContactsBulkUpdateRequest(updates=items)
+        key = idempotency_key or (
+            generate_idempotency_key() if self._client.auto_idempotency else None
+        )
+        api_response = self._api.contacts_bulk_update_with_http_info(
+            contacts_bulk_update_request=body,
+            idempotency_key=key,
+            _request_timeout=self._timeout,
+        )
+        return Response.from_api_response(api_response)
+
 
 class _Messages:
     def __init__(self, client: "Client", api: MessagesApi) -> None:
@@ -192,7 +274,15 @@ class _Messages:
         channel: Optional[str] = None,
         role: Optional[str] = None,
         since: Optional[Any] = None,
+        cursor: Optional[str] = None,
+        limit: Optional[int] = None,
     ) -> Any:
+        """История сообщений.
+
+        Поддерживает два режима пагинации (см. :meth:`_Contacts.list`).
+        Параметр ``cursor`` — opaque строка из предыдущего ``meta.next_cursor``;
+        при его передаче ``page``/``per_page`` игнорируются сервером.
+        """
         return self._api.messages_list(
             page=page,
             per_page=per_page,
@@ -201,6 +291,8 @@ class _Messages:
             channel=channel,
             role=role,
             since=since,
+            cursor=cursor,
+            limit=limit,
             _request_timeout=self._timeout,
         )
 
@@ -234,6 +326,37 @@ class _Messages:
         )
         api_response = self._api.messages_send_with_http_info(
             messages_send_request=body,
+            idempotency_key=key,
+            _request_timeout=self._timeout,
+        )
+        return Response.from_api_response(api_response)
+
+    def bulk_send(
+        self,
+        messages: List[Dict[str, Any]],
+        idempotency_key: Optional[str] = None,
+    ) -> Response:
+        """Массовая отправка сообщений (v1.1+). До 50 за один запрос.
+
+        Каждый item — словарь с полями ``contact_id``, ``content``, опционально
+        ``channel``, ``attachments``. Bulk-операция в API rate-limit считается как
+        1 запрос, но **per-bot rate-limit** соблюдается: при превышении внутри
+        партии остальные item получают ``RATE_LIMIT_EXCEEDED`` в ``results``.
+
+        :param messages: список словарей с параметрами отправки.
+        :param idempotency_key: явный ``Idempotency-Key``. Если не задан и
+                                ``auto_idempotency=True`` — генерится автоматически.
+        :return: :class:`botix.Response`.
+        """
+        items = [
+            MessagesBulkSendRequestMessagesInner.model_validate(m) for m in messages
+        ]
+        body = MessagesBulkSendRequest(messages=items)
+        key = idempotency_key or (
+            generate_idempotency_key() if self._client.auto_idempotency else None
+        )
+        api_response = self._api.messages_bulk_send_with_http_info(
+            messages_bulk_send_request=body,
             idempotency_key=key,
             _request_timeout=self._timeout,
         )
@@ -290,21 +413,36 @@ class _Chats:
         status: Optional[str] = None,
         channel: Optional[str] = None,
         contact_id: Optional[int] = None,
+        cursor: Optional[str] = None,
+        limit: Optional[int] = None,
     ) -> Any:
+        """Список чатов. Поддерживает cursor-пагинацию (v1.1+)."""
         return self._api.chats_list(
             page=page,
             per_page=per_page,
             status=status,
             channel=channel,
             contact_id=contact_id,
+            cursor=cursor,
+            limit=limit,
             _request_timeout=self._timeout,
         )
 
-    def messages(self, chat_id: int, page: int = 1, per_page: int = 50) -> Any:
+    def messages(
+        self,
+        chat_id: int,
+        page: int = 1,
+        per_page: int = 50,
+        cursor: Optional[str] = None,
+        limit: Optional[int] = None,
+    ) -> Any:
+        """Сообщения в чате. Поддерживает cursor-пагинацию (v1.1+)."""
         return self._api.chats_messages(
             id=chat_id,
             page=page,
             per_page=per_page,
+            cursor=cursor,
+            limit=limit,
             _request_timeout=self._timeout,
         )
 

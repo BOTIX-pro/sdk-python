@@ -18,22 +18,20 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, StrictBool
-from typing import Any, ClassVar, Dict, List, Optional
-from botix.models.channel import Channel
-from botix.models.channels_list200_response_meta import ChannelsList200ResponseMeta
+from pydantic import BaseModel, ConfigDict, Field
+from typing import Any, ClassVar, Dict, List
+from typing_extensions import Annotated
+from botix.models.contact_writable import ContactWritable
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
-class ChannelsList200Response(BaseModel):
+class ContactsBulkCreateRequest(BaseModel):
     """
-    ChannelsList200Response
+    ContactsBulkCreateRequest
     """ # noqa: E501
-    success: Optional[StrictBool] = None
-    data: Optional[List[Channel]] = None
-    meta: Optional[ChannelsList200ResponseMeta] = None
-    __properties: ClassVar[List[str]] = ["success", "data", "meta"]
+    contacts: Annotated[List[ContactWritable], Field(min_length=1, max_length=100)]
+    __properties: ClassVar[List[str]] = ["contacts"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -53,7 +51,7 @@ class ChannelsList200Response(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of ChannelsList200Response from a JSON string"""
+        """Create an instance of ContactsBulkCreateRequest from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -74,21 +72,18 @@ class ChannelsList200Response(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # override the default output from pydantic by calling `to_dict()` of each item in data (list)
+        # override the default output from pydantic by calling `to_dict()` of each item in contacts (list)
         _items = []
-        if self.data:
-            for _item_data in self.data:
-                if _item_data:
-                    _items.append(_item_data.to_dict())
-            _dict['data'] = _items
-        # override the default output from pydantic by calling `to_dict()` of meta
-        if self.meta:
-            _dict['meta'] = self.meta.to_dict()
+        if self.contacts:
+            for _item_contacts in self.contacts:
+                if _item_contacts:
+                    _items.append(_item_contacts.to_dict())
+            _dict['contacts'] = _items
         return _dict
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of ChannelsList200Response from a dict"""
+        """Create an instance of ContactsBulkCreateRequest from a dict"""
         if obj is None:
             return None
 
@@ -96,9 +91,7 @@ class ChannelsList200Response(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "success": obj.get("success"),
-            "data": [Channel.from_dict(_item) for _item in obj["data"]] if obj.get("data") is not None else None,
-            "meta": ChannelsList200ResponseMeta.from_dict(obj["meta"]) if obj.get("meta") is not None else None
+            "contacts": [ContactWritable.from_dict(_item) for _item in obj["contacts"]] if obj.get("contacts") is not None else None
         })
         return _obj
 

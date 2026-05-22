@@ -18,22 +18,22 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, StrictBool
+from pydantic import BaseModel, ConfigDict, Field, StrictInt
 from typing import Any, ClassVar, Dict, List, Optional
-from botix.models.channel import Channel
-from botix.models.channels_list200_response_meta import ChannelsList200ResponseMeta
+from botix.models.bulk_result_data_results_inner import BulkResultDataResultsInner
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
-class ChannelsList200Response(BaseModel):
+class BulkResultData(BaseModel):
     """
-    ChannelsList200Response
+    BulkResultData
     """ # noqa: E501
-    success: Optional[StrictBool] = None
-    data: Optional[List[Channel]] = None
-    meta: Optional[ChannelsList200ResponseMeta] = None
-    __properties: ClassVar[List[str]] = ["success", "data", "meta"]
+    created: Optional[StrictInt] = Field(default=None, description="Для bulk-create")
+    updated: Optional[StrictInt] = Field(default=None, description="Для bulk-update")
+    failed: Optional[StrictInt] = None
+    results: Optional[List[BulkResultDataResultsInner]] = None
+    __properties: ClassVar[List[str]] = ["created", "updated", "failed", "results"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -53,7 +53,7 @@ class ChannelsList200Response(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of ChannelsList200Response from a JSON string"""
+        """Create an instance of BulkResultData from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -74,21 +74,28 @@ class ChannelsList200Response(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # override the default output from pydantic by calling `to_dict()` of each item in data (list)
+        # override the default output from pydantic by calling `to_dict()` of each item in results (list)
         _items = []
-        if self.data:
-            for _item_data in self.data:
-                if _item_data:
-                    _items.append(_item_data.to_dict())
-            _dict['data'] = _items
-        # override the default output from pydantic by calling `to_dict()` of meta
-        if self.meta:
-            _dict['meta'] = self.meta.to_dict()
+        if self.results:
+            for _item_results in self.results:
+                if _item_results:
+                    _items.append(_item_results.to_dict())
+            _dict['results'] = _items
+        # set to None if created (nullable) is None
+        # and model_fields_set contains the field
+        if self.created is None and "created" in self.model_fields_set:
+            _dict['created'] = None
+
+        # set to None if updated (nullable) is None
+        # and model_fields_set contains the field
+        if self.updated is None and "updated" in self.model_fields_set:
+            _dict['updated'] = None
+
         return _dict
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of ChannelsList200Response from a dict"""
+        """Create an instance of BulkResultData from a dict"""
         if obj is None:
             return None
 
@@ -96,9 +103,10 @@ class ChannelsList200Response(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "success": obj.get("success"),
-            "data": [Channel.from_dict(_item) for _item in obj["data"]] if obj.get("data") is not None else None,
-            "meta": ChannelsList200ResponseMeta.from_dict(obj["meta"]) if obj.get("meta") is not None else None
+            "created": obj.get("created"),
+            "updated": obj.get("updated"),
+            "failed": obj.get("failed"),
+            "results": [BulkResultDataResultsInner.from_dict(_item) for _item in obj["results"]] if obj.get("results") is not None else None
         })
         return _obj
 

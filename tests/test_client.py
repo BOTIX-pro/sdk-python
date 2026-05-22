@@ -58,4 +58,4 @@ def test_context_manager_closes() -> None:
 
 
 def test_version_exported() -> None:
-    assert botix.__version__ == "1.0.0"
+    assert botix.__version__ == "1.1.0"
